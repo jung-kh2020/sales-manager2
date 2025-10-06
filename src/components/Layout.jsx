@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Users, ShoppingCart, DollarSign, BarChart3, Package, LogOut } from 'lucide-react'
+import { LayoutDashboard, Users, ShoppingCart, DollarSign, BarChart3, Package, LogOut, ExternalLink } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 const Layout = ({ children }) => {
@@ -13,6 +13,7 @@ const Layout = ({ children }) => {
     { name: '상품 관리', href: '/products', icon: Package },
     { name: '수수료', href: '/commissions', icon: DollarSign },
     { name: '통계', href: '/statistics', icon: BarChart3 },
+    { name: '발주사이트', href: 'https://rctorder.bravo6.kr/login?redirectTo=%2Forder', icon: ExternalLink, external: true },
   ]
 
   const employeeNavigation = [
@@ -38,6 +39,30 @@ const Layout = ({ children }) => {
           {navigation.map((item) => {
             const Icon = item.icon
             const isActive = location.pathname === item.href
+
+            // 외부 링크인 경우
+            if (item.external) {
+              return (
+                <a
+                  key={item.name}
+                  href={item.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group block p-3 rounded-lg transition-all duration-200 border-2 bg-white border-gray-200 hover:border-blue-300 hover:shadow-sm"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg transition-colors bg-gray-100 group-hover:bg-blue-100">
+                      <Icon className="h-4 w-4 transition-colors text-gray-600 group-hover:text-blue-600" />
+                    </div>
+                    <span className="text-lg font-medium text-gray-700 group-hover:text-blue-600">
+                      {item.name}
+                    </span>
+                  </div>
+                </a>
+              )
+            }
+
+            // 내부 링크
             return (
               <Link
                 key={item.name}

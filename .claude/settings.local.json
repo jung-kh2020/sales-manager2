@@ -11,7 +11,10 @@
       "Bash(rm:*)",
       "Bash(git init:*)",
       "Bash(git remote add origin https://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@github.com/bravo6co-debug/SALES-MANAGER.git)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nInitial commit: Sales Management System\n\n## Features\n- 📊 Dashboard with date range filters (day/week/month/custom)\n- 👥 Employee Management with Supabase Auth integration\n- 📦 Product Management with Supabase Storage image upload\n- 💰 Sales tracking and commission calculation\n- 📈 Statistics with responsive charts (1/3/6/12 months)\n- 🔐 Role-based authentication (admin/employee)\n\n## Tech Stack\n- React 19.2.0 + Vite 7.1.9\n- Supabase 2.58.0 (Database + Auth + Storage)\n- TailwindCSS 4.1.14\n- Chart.js 4.5.0\n- React Router DOM 7.9.3\n\n## Database Features\n- PostgreSQL with RLS policies\n- Foreign key relationships\n- Employee status tracking (active/inactive)\n- Product inventory management\n- Sales and commission tracking\n\n## Auth Features\n- Email/password authentication\n- Admin account creation (Supabase Dashboard only)\n- Employee account creation (app registration)\n- Inactive user login blocking\n- Password visibility toggle\n\n## Deployment Ready\n- Vercel configuration included\n- Environment variables setup\n- Production build optimized\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

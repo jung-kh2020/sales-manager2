@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create:*)",
+      "Bash(npm init:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tailwindcss init:*)",
+      "Bash(npm run dev:*)",
+      "Bash(mkdir:*)",
+      "Bash(node:*)",
+      "Bash(rm:*)",
+      "Bash(git init:*)",
+      "Bash(git remote add origin https://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@github.com/bravo6co-debug/SALES-MANAGER.git)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

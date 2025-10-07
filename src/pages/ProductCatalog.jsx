@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../services/supabase'
-import { ShoppingCart, CreditCard, Package, Star, CheckCircle } from 'lucide-react'
+import { ShoppingCart, CreditCard, Package, Star, CheckCircle, Building2, X, Copy } from 'lucide-react'
 
 const ProductCatalog = () => {
   const { id } = useParams()
@@ -17,6 +17,8 @@ const ProductCatalog = () => {
     address: ''
   })
   const [showPayment, setShowPayment] = useState(false)
+  const [showAccountModal, setShowAccountModal] = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState('')
 
   useEffect(() => {
     const productId = window.location.pathname.split('/')[2]
@@ -64,6 +66,30 @@ const ProductCatalog = () => {
       style: 'currency',
       currency: 'KRW',
     }).format(amount)
+  }
+
+  const calculateVAT = (amount) => {
+    return Math.round(amount * 0.1)
+  }
+
+  const calculateTotal = (amount) => {
+    return amount + calculateVAT(amount)
+  }
+
+  const handleCardPayment = () => {
+    if (!customerInfo.name || !customerInfo.email || !customerInfo.phone) {
+      alert('필수 정보를 모두 입력해주세요.')
+      return
+    }
+    alert('카드결제 서비스 준비중입니다.\n\n빠른 시일 내에 오픈 예정입니다. 😊')
+  }
+
+  const handleBankTransfer = () => {
+    if (!customerInfo.name || !customerInfo.email || !customerInfo.phone) {
+      alert('필수 정보를 모두 입력해주세요.')
+      return
+    }
+    setShowAccountModal(true)
   }
 
   const handlePayment = async () => {
@@ -262,11 +288,19 @@ const ProductCatalog = () => {
                   </div>
                   <p className="text-sm text-gray-500 mt-1">수량을 선택해주세요</p>
                 </div>
-                <div className="border-t pt-4">
-                  <div className="flex justify-between items-center">
+                <div className="border-t pt-4 space-y-2">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600">상품금액</span>
+                    <span className="text-gray-900">{formatCurrency(product.price * quantity)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600">VAT (10%)</span>
+                    <span className="text-gray-900">{formatCurrency(calculateVAT(product.price * quantity))}</span>
+                  </div>
+                  <div className="border-t pt-2 flex justify-between items-center">
                     <span className="text-lg font-semibold text-gray-700">총 결제금액</span>
                     <span className="text-2xl font-bold text-blue-600">
-                      {formatCurrency(product.price * quantity)}
+                      {formatCurrency(calculateTotal(product.price * quantity))}
                     </span>
                   </div>
                 </div>
@@ -334,13 +368,34 @@ const ProductCatalog = () => {
                   <CheckCircle className="h-4 w-4 text-green-500" />
                   <span>개인정보 보호</span>
                 </div>
-                <button
-                  onClick={handlePayment}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg"
-                >
-                  <CreditCard className="h-5 w-5" />
-                  {formatCurrency(product.price * quantity)} 결제하기
-                </button>
+
+                {/* 결제 방법 선택 */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-gray-700">결제 방법 선택</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={handleCardPayment}
+                      className="flex flex-col items-center justify-center gap-2 px-4 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                    >
+                      <CreditCard className="h-6 w-6" />
+                      <span className="text-sm">카드결제</span>
+                    </button>
+                    <button
+                      onClick={handleBankTransfer}
+                      className="flex flex-col items-center justify-center gap-2 px-4 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                    >
+                      <Building2 className="h-6 w-6" />
+                      <span className="text-sm">계좌이체</span>
+                    </button>
+                  </div>
+                  <div className="text-center">
+                    <span className="text-lg font-bold text-gray-900">
+                      {formatCurrency(calculateTotal(product.price * quantity))}
+                    </span>
+                    <span className="text-xs text-gray-500 ml-1">(VAT 포함)</span>
+                  </div>
+                </div>
+
                 <p className="text-xs text-gray-500 text-center">
                   결제 시 개인정보 처리방침에 동의하는 것으로 간주됩니다.
                 </p>
@@ -349,6 +404,77 @@ const ProductCatalog = () => {
           </div>
         </div>
       </div>
+
+      {/* 계좌번호 모달 */}
+      {showAccountModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 relative">
+            <button
+              onClick={() => setShowAccountModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="text-center mb-6">
+              <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-3">
+                <Building2 className="h-6 w-6 text-green-600" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900">계좌이체 안내</h2>
+              <p className="text-sm text-gray-600 mt-1">아래 계좌로 입금해 주세요</p>
+            </div>
+
+            <div className="space-y-4 bg-gray-50 rounded-lg p-4 mb-6">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">은행</span>
+                <span className="font-semibold text-gray-900">국민은행</span>
+              </div>
+              <div className="border-t border-gray-200"></div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">계좌번호</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-gray-900">123-456-789012</span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText('123-456-789012')
+                      alert('계좌번호가 복사되었습니다!')
+                    }}
+                    className="text-blue-600 hover:text-blue-700"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+              <div className="border-t border-gray-200"></div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">예금주</span>
+                <span className="font-semibold text-gray-900">(주)리뷰999플러스</span>
+              </div>
+              <div className="border-t border-gray-200"></div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">입금액</span>
+                <span className="text-lg font-bold text-blue-600">
+                  {formatCurrency(calculateTotal(product.price * quantity))}
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+              <p className="text-xs text-yellow-800">
+                ⚠️ 입금자명은 주문시 입력하신 이름과 동일해야 합니다.<br />
+                입금 확인 후 주문이 처리됩니다.
+              </p>
+            </div>
+
+            <button
+              onClick={() => setShowAccountModal(false)}
+              className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

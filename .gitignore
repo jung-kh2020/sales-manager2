@@ -34,3 +34,12 @@ dist-ssr
 # SQL files (sensitive setup scripts)
 *.sql
 !supabase_schema.sql
+
+# Test files
+playwright.config.js
+test-*.spec.js
+test-results/
+*-screenshot.png
+
+# Claude settings
+.claude/settings.local.json

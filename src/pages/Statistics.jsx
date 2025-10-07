@@ -77,8 +77,8 @@ const Statistics = () => {
     try {
       const { startDate, endDate, monthsToShow } = getDateRange()
 
-      // 판매 데이터 가져오기
-      const { data: salesData, error } = await supabase
+      // 오프라인 판매 데이터 가져오기 (sales 테이블)
+      const { data: salesData, error: salesError } = await supabase
         .from('sales')
         .select(`
           *,
@@ -88,13 +88,27 @@ const Statistics = () => {
         .gte('sale_date', startDate)
         .lte('sale_date', endDate)
 
-      if (error) throw error
+      if (salesError) throw salesError
+
+      // 온라인 주문 데이터 가져오기 (orders 테이블)
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          products (name, price),
+          employees (name)
+        `)
+        .gte('created_at', startDate)
+        .lte('created_at', endDate + 'T23:59:59')
+
+      if (ordersError) throw ordersError
 
       // 월별 매출 추이 계산
       const monthlyData = new Map()
       const productData = new Map()
       const employeeData = new Map()
 
+      // 오프라인 판매 집계
       salesData?.forEach(sale => {
         const month = format(new Date(sale.sale_date), 'yyyy-MM')
         const saleAmount = sale.products.price * sale.quantity
@@ -109,6 +123,25 @@ const Statistics = () => {
         // 사원별 매출
         const employeeName = sale.employees.name
         employeeData.set(employeeName, (employeeData.get(employeeName) || 0) + saleAmount)
+      })
+
+      // 온라인 주문 집계
+      ordersData?.forEach(order => {
+        const month = format(new Date(order.created_at), 'yyyy-MM')
+        const orderAmount = order.total_amount || (order.products.price * order.quantity)
+
+        // 월별 매출
+        monthlyData.set(month, (monthlyData.get(month) || 0) + orderAmount)
+
+        // 상품별 매출
+        const productName = order.products.name
+        productData.set(productName, (productData.get(productName) || 0) + orderAmount)
+
+        // 사원별 매출 (판매자가 있는 경우만)
+        if (order.employees?.name) {
+          const employeeName = order.employees.name
+          employeeData.set(employeeName, (employeeData.get(employeeName) || 0) + orderAmount)
+        }
       })
 
       // 월별 매출 추이 데이터 정렬

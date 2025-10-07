@@ -32,7 +32,7 @@ const Login = () => {
             <LogIn className="h-6 w-6 text-blue-600" />
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            영업관리 시스템
+            리뷰999+ 관리시스템
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             계정에 로그인하세요
@@ -40,7 +40,7 @@ const Login = () => {
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 이메일 주소
@@ -71,12 +71,12 @@ const Login = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none relative block w-full px-3 py-2 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                  className="appearance-none block w-full px-3 py-2 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   placeholder="비밀번호를 입력하세요"
                 />
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center z-10"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
@@ -95,7 +95,7 @@ const Login = () => {
             </div>
           )}
 
-          <div>
+          <div className="mt-20">
             <button
               type="submit"
               disabled={loading}

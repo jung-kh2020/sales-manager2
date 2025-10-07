@@ -29,13 +29,13 @@ const Layout = ({ children }) => {
         {/* Logo/Header */}
         <div className="p-4 border-b border-gray-200">
           <div>
-            <h1 className="text-base font-bold text-gray-900">영업관리</h1>
-            <p className="text-xs text-gray-500">Sales Manager</p>
+            <h1 className="text-base font-bold text-gray-900">리뷰999+</h1>
+            <p className="text-xs text-gray-500">관리시스템</p>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="p-3 space-y-1">
+        <nav className="p-5 space-y-3">
           {navigation.map((item) => {
             const Icon = item.icon
             const isActive = location.pathname === item.href

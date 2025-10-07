@@ -56,7 +56,7 @@ const Dashboard = () => {
     try {
       const { startDate, endDate } = getDateRange()
 
-      // 선택한 기간의 판매 데이터 가져오기
+      // 선택한 기간의 오프라인 판매 데이터 가져오기 (sales 테이블)
       const { data: salesData, error: salesError } = await supabase
         .from('sales')
         .select(`
@@ -69,14 +69,36 @@ const Dashboard = () => {
 
       if (salesError) throw salesError
 
+      // 선택한 기간의 온라인 주문 데이터 가져오기 (orders 테이블)
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          products (price, cost),
+          employees (name)
+        `)
+        .gte('created_at', startDate)
+        .lte('created_at', endDate + 'T23:59:59')
+
+      if (ordersError) throw ordersError
+
       // 통계 계산
       let totalSales = 0
       let totalCost = 0
 
+      // 오프라인 판매 집계
       salesData?.forEach(sale => {
         const saleAmount = sale.products.price * sale.quantity
         const costAmount = sale.products.cost * sale.quantity
         totalSales += saleAmount
+        totalCost += costAmount
+      })
+
+      // 온라인 주문 집계
+      ordersData?.forEach(order => {
+        const orderAmount = order.total_amount || (order.products.price * order.quantity)
+        const costAmount = order.products.cost * order.quantity
+        totalSales += orderAmount
         totalCost += costAmount
       })
 
@@ -101,8 +123,24 @@ const Dashboard = () => {
         employeeCount: employeeCount || 0,
       })
 
-      // 최근 판매 내역
-      setRecentSales(salesData?.slice(0, 10) || [])
+      // 최근 판매 내역 (온라인 + 오프라인 통합)
+      const combinedSales = [
+        ...(salesData || []).map(sale => ({
+          ...sale,
+          sale_date: sale.sale_date,
+          type: 'offline'
+        })),
+        ...(ordersData || []).map(order => ({
+          id: order.id,
+          sale_date: order.created_at?.split('T')[0],
+          products: order.products,
+          employees: order.employees,
+          quantity: order.quantity,
+          type: 'online'
+        }))
+      ].sort((a, b) => new Date(b.sale_date) - new Date(a.sale_date))
+
+      setRecentSales(combinedSales.slice(0, 10))
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {
@@ -281,6 +319,9 @@ const Dashboard = () => {
                   판매일자
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  구분
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   사원명
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -297,18 +338,27 @@ const Dashboard = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {recentSales.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
                     판매 내역이 없습니다.
                   </td>
                 </tr>
               ) : (
                 recentSales.map((sale, index) => (
-                  <tr key={sale.id} className={`hover:bg-gray-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                  <tr key={`${sale.type}-${sale.id}`} className={`hover:bg-gray-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {format(new Date(sale.sale_date), 'yyyy-MM-dd')}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        sale.type === 'online'
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {sale.type === 'online' ? '🌐 온라인' : '🏪 오프라인'}
+                      </span>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {sale.employees?.name}
+                      {sale.employees?.name || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                       {sale.products?.name}

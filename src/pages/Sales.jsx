@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase } from '../services/supabase'
 import { format } from 'date-fns'
-import { Plus, Edit2, Trash2, Filter } from 'lucide-react'
+import { Plus, Edit2, Trash2, Filter, X } from 'lucide-react'
 
 const Sales = () => {
   const [sales, setSales] = useState([])
@@ -303,21 +304,57 @@ const Sales = () => {
       </div>
 
       {/* 등록/수정 모달 */}
-      {showModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              {editingSale ? '판매 정보 수정' : '신규 판매 등록'}
-            </h3>
+      {showModal && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99999,
+            padding: '1rem'
+          }}
+          onClick={resetForm}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '2rem',
+              width: '100%',
+              maxWidth: '672px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">
+                {editingSale ? '판매 정보 수정' : '신규 판매 등록'}
+              </h3>
+              <button
+                type="button"
+                onClick={resetForm}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
             <form onSubmit={handleSubmit}>
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">사원 선택 *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">사원 선택 *</label>
                   <select
                     required
                     value={formData.employee_id}
                     onChange={(e) => setFormData({ ...formData, employee_id: e.target.value })}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    className="block w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="">선택하세요</option>
                     {employees.map(emp => (
@@ -326,12 +363,12 @@ const Sales = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">상품 선택 *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">상품 선택 *</label>
                   <select
                     required
                     value={formData.product_id}
                     onChange={(e) => setFormData({ ...formData, product_id: e.target.value })}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    className="block w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="">선택하세요</option>
                     {products.map(prod => (
@@ -342,70 +379,72 @@ const Sales = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">판매일자 *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">판매일자 *</label>
                   <input
                     type="date"
                     required
                     value={formData.sale_date}
                     onChange={(e) => setFormData({ ...formData, sale_date: e.target.value })}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    className="block w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">수량 *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">수량 *</label>
                   <input
                     type="number"
                     required
                     min="1"
                     value={formData.quantity}
                     onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    className="block w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
-                {totalAmount > 0 && (
-                  <div className="bg-blue-50 p-3 rounded-md">
-                    <p className="text-sm text-blue-800">
-                      판매금액: <span className="font-semibold">{formatCurrency(totalAmount)}</span>
-                    </p>
-                  </div>
-                )}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">고객명</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">고객명</label>
                   <input
                     type="text"
                     value={formData.customer_name}
                     onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    className="block w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="고객명을 입력하세요"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">비고</label>
+                {totalAmount > 0 && (
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <p className="text-sm text-gray-600 mb-1">판매금액</p>
+                    <p className="text-2xl font-bold text-blue-900">{formatCurrency(totalAmount)}</p>
+                  </div>
+                )}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">비고</label>
                   <textarea
                     value={formData.note}
                     onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                    rows="3"
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    rows="4"
+                    className="block w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="추가 메모사항을 입력하세요"
                   />
                 </div>
               </div>
-              <div className="mt-6 flex justify-end gap-3">
+              <div className="mt-8 pt-6 border-t border-gray-200 flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                  className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
                 >
                   취소
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
                 >
-                  {editingSale ? '수정' : '등록'}
+                  {editingSale ? '수정 완료' : '등록 완료'}
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

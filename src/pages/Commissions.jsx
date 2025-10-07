@@ -21,7 +21,7 @@ const Commissions = () => {
       const nextMonth = new Date(year, month, 1)
       const monthEnd = format(new Date(nextMonth - 1), 'yyyy-MM-dd')
 
-      // 해당 월의 판매 데이터 가져오기
+      // 해당 월의 오프라인 판매 데이터 가져오기 (sales 테이블)
       const { data: salesData, error: salesError } = await supabase
         .from('sales')
         .select(`
@@ -34,9 +34,23 @@ const Commissions = () => {
 
       if (salesError) throw salesError
 
+      // 해당 월의 온라인 주문 데이터 가져오기 (orders 테이블)
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          employees (id, name, employee_code),
+          products (price, cost)
+        `)
+        .gte('created_at', monthStart)
+        .lte('created_at', monthEnd + 'T23:59:59')
+
+      if (ordersError) throw ordersError
+
       // 사원별로 데이터 그룹화
       const employeeMap = new Map()
 
+      // 오프라인 판매 집계
       salesData?.forEach(sale => {
         const empId = sale.employees.id
         if (!employeeMap.has(empId)) {
@@ -57,6 +71,32 @@ const Commissions = () => {
         empData.totalSales += saleAmount
         empData.totalCost += costAmount
         empData.salesCount += 1
+      })
+
+      // 온라인 주문 집계
+      ordersData?.forEach(order => {
+        // 판매자가 연결된 주문만 처리
+        if (order.employees?.id) {
+          const empId = order.employees.id
+          if (!employeeMap.has(empId)) {
+            employeeMap.set(empId, {
+              employee: order.employees,
+              sales: [],
+              totalSales: 0,
+              totalCost: 0,
+              salesCount: 0,
+            })
+          }
+
+          const empData = employeeMap.get(empId)
+          const orderAmount = order.total_amount || (order.products.price * order.quantity)
+          const costAmount = order.products.cost * order.quantity
+
+          empData.sales.push(order)
+          empData.totalSales += orderAmount
+          empData.totalCost += costAmount
+          empData.salesCount += 1
+        }
       })
 
       // 수수료 계산

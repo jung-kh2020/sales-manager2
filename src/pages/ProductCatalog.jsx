@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../services/supabase'
 import { ShoppingCart, CreditCard, Package, Star, CheckCircle, Building2, X, Copy } from 'lucide-react'
@@ -19,6 +20,7 @@ const ProductCatalog = () => {
   const [showPayment, setShowPayment] = useState(false)
   const [showAccountModal, setShowAccountModal] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState('')
+  const [currentOrder, setCurrentOrder] = useState(null)
 
   useEffect(() => {
     const productId = window.location.pathname.split('/')[2]
@@ -84,12 +86,42 @@ const ProductCatalog = () => {
     alert('카드결제 서비스 준비중입니다.\n\n빠른 시일 내에 오픈 예정입니다. 😊')
   }
 
-  const handleBankTransfer = () => {
+  const handleBankTransfer = async () => {
+    // 1. 필수 정보 확인
     if (!customerInfo.name || !customerInfo.email || !customerInfo.phone) {
       alert('필수 정보를 모두 입력해주세요.')
       return
     }
-    setShowAccountModal(true)
+
+    try {
+      // 2. 주문 생성 (입금 대기 상태)
+      const orderData = {
+        product_id: product.id,
+        employee_id: employee?.id || null,
+        customer_name: customerInfo.name,
+        customer_email: customerInfo.email,
+        customer_phone: customerInfo.phone,
+        customer_address: customerInfo.address || '',
+        quantity: quantity,
+        total_amount: product.price * quantity,
+        status: 'pending_payment', // 입금 대기
+      }
+
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert([orderData])
+        .select()
+        .single()
+
+      if (orderError) throw orderError
+
+      // 3. 주문 정보 저장 및 모달 표시
+      setCurrentOrder(order)
+      setShowAccountModal(true)
+    } catch (error) {
+      console.error('Order creation error:', error)
+      alert('주문 생성 중 오류가 발생했습니다: ' + error.message)
+    }
   }
 
   const handlePayment = async () => {
@@ -406,9 +438,35 @@ const ProductCatalog = () => {
       </div>
 
       {/* 계좌번호 모달 */}
-      {showAccountModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 relative">
+      {showAccountModal && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99999,
+            padding: '1rem'
+          }}
+          onClick={() => setShowAccountModal(false)}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              maxWidth: '500px',
+              width: '100%',
+              padding: '2rem',
+              position: 'relative',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               onClick={() => setShowAccountModal(false)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
@@ -422,6 +480,13 @@ const ProductCatalog = () => {
               </div>
               <h2 className="text-xl font-bold text-gray-900">계좌이체 안내</h2>
               <p className="text-sm text-gray-600 mt-1">아래 계좌로 입금해 주세요</p>
+              {currentOrder && (
+                <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                  <p className="text-xs text-blue-800">
+                    주문번호: <span className="font-bold">#{currentOrder.id}</span>
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="space-y-4 bg-gray-50 rounded-lg p-4 mb-6">
@@ -459,10 +524,21 @@ const ProductCatalog = () => {
               </div>
             </div>
 
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-              <p className="text-xs text-yellow-800">
-                ⚠️ 입금자명은 주문시 입력하신 이름과 동일해야 합니다.<br />
-                입금 확인 후 주문이 처리됩니다.
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+              <p className="text-sm text-yellow-800 leading-relaxed">
+                <strong>⚠️ 입금 안내</strong><br />
+                1. 위 계좌로 입금해 주세요<br />
+                2. 입금자명은 주문 시 입력한 이름 <strong>({customerInfo.name})</strong>과 동일해야 합니다<br />
+                3. 입금 확인 후 담당자가 주문을 처리합니다
+              </p>
+            </div>
+
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+              <p className="text-sm text-red-800 leading-relaxed">
+                <strong>🕐 중요</strong><br />
+                • 주문 생성 후 <strong>24시간 이내</strong>에 입금해 주세요<br />
+                • 24시간 이내 미입금 시 주문이 자동 취소됩니다<br />
+                • 입금 후 관리자 확인이 완료되면 주문이 처리됩니다
               </p>
             </div>
 
@@ -473,7 +549,8 @@ const ProductCatalog = () => {
               확인
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

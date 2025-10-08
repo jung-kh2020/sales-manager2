@@ -1,15 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/supabase'
-import { 
-  TrendingUp, 
-  DollarSign, 
-  Package, 
-  Copy, 
-  ExternalLink,
-  Calendar,
-  User,
-  BarChart3
+import {
+  TrendingUp,
+  DollarSign,
+  Package,
+  Copy,
+  ExternalLink
 } from 'lucide-react'
 
 const EmployeeDashboard = () => {
@@ -201,6 +198,7 @@ const EmployeeDashboard = () => {
     return new Date(dateString).toLocaleDateString('ko-KR')
   }
 
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -222,14 +220,16 @@ const EmployeeDashboard = () => {
               사원번호: {user.employee.employee_code} | 이메일: {user.email}
             </p>
           </div>
-          <div className="text-right">
-            <p className="text-sm text-gray-500">현재 월</p>
-            <p className="text-lg font-semibold text-gray-900">
-              {new Date().toLocaleDateString('ko-KR', { 
-                year: 'numeric', 
-                month: 'long' 
-              })}
-            </p>
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <p className="text-sm text-gray-500">현재 월</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {new Date().toLocaleDateString('ko-KR', {
+                  year: 'numeric',
+                  month: 'long'
+                })}
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -298,7 +298,7 @@ const EmployeeDashboard = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100">
         <div className="p-6 border-b border-gray-100">
           <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-            <BarChart3 className="h-5 w-5 mr-2" />
+            <Package className="h-5 w-5 mr-2" />
             상품 링크 관리
           </h2>
           <p className="text-sm text-gray-600 mt-1">
@@ -352,7 +352,7 @@ const EmployeeDashboard = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100">
         <div className="p-6 border-b border-gray-100">
           <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-            <Calendar className="h-5 w-5 mr-2" />
+            <Package className="h-5 w-5 mr-2" />
             이번 달 주문 내역
           </h2>
         </div>
@@ -434,6 +434,7 @@ const EmployeeDashboard = () => {
           </table>
         </div>
       </div>
+
     </div>
   )
 }

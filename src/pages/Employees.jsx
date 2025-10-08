@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../services/supabase'
-import { Plus, Edit2, Trash2, Search, Eye, EyeOff } from 'lucide-react'
+import { supabase, supabaseAdmin } from '../services/supabase'
+import { Plus, Edit2, Trash2, Search, Eye, EyeOff, Key } from 'lucide-react'
 
 const Employees = () => {
   const [employees, setEmployees] = useState([])
@@ -229,6 +229,43 @@ const Employees = () => {
     setShowModal(false)
   }
 
+  const handlePasswordReset = async (employee) => {
+    if (!confirm(`${employee.name}님의 비밀번호를 "123456"으로 초기화하시겠습니까?`)) {
+      return
+    }
+
+    if (!supabaseAdmin) {
+      alert('⚠️ Admin 권한이 설정되지 않았습니다.\n\n.env 파일에 VITE_SUPABASE_SERVICE_ROLE_KEY를 추가해주세요.')
+      return
+    }
+
+    try {
+      // 1. Supabase Auth에서 해당 사용자 찾기
+      const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers()
+
+      if (listError) throw listError
+
+      const targetUser = users.find(u => u.email === employee.email)
+
+      if (!targetUser) {
+        throw new Error('해당 사용자를 찾을 수 없습니다.')
+      }
+
+      // 2. 비밀번호를 123456으로 업데이트
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+        targetUser.id,
+        { password: '123456' }
+      )
+
+      if (updateError) throw updateError
+
+      alert(`✅ ${employee.name}님의 비밀번호가 "123456"으로 초기화되었습니다.\n\n사원에게 초기 비밀번호를 안내해주세요.`)
+    } catch (error) {
+      console.error('Password reset error:', error)
+      alert('비밀번호 초기화 실패: ' + error.message)
+    }
+  }
+
   return (
     <div>
       {/* 필터 및 검색 */}
@@ -309,6 +346,13 @@ const Employees = () => {
                         title="수정"
                       >
                         <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handlePasswordReset(employee)}
+                        className="p-1.5 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
+                        title="비밀번호 재설정"
+                      >
+                        <Key className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(employee.id)}

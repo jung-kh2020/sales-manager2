@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard'
 import EmployeeDashboard from './pages/EmployeeDashboard'
 import Employees from './pages/Employees'
 import Sales from './pages/Sales'
+import OnlineOrders from './pages/OnlineOrders'
 import Commissions from './pages/Commissions'
 import Statistics from './pages/Statistics'
 import Products from './pages/Products'
@@ -53,6 +54,7 @@ const AppRoutes = () => {
           <>
             <Route path="/employees" element={<Employees />} />
             <Route path="/sales" element={<Sales />} />
+            <Route path="/online-orders" element={<OnlineOrders />} />
             <Route path="/commissions" element={<Commissions />} />
             <Route path="/statistics" element={<Statistics />} />
             <Route path="/products" element={<Products />} />

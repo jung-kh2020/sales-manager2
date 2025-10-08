@@ -12,7 +12,8 @@ export const supabaseAdmin = supabaseServiceRoleKey
   ? createClient(supabaseUrl, supabaseServiceRoleKey, {
       auth: {
         autoRefreshToken: false,
-        persistSession: false
+        persistSession: false,
+        storageKey: 'supabase-admin-auth' // 별도 storage key로 충돌 방지
       }
     })
   : null

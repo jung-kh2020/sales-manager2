@@ -173,7 +173,7 @@ const Employees = () => {
           throw userError
         }
 
-        alert('사원이 등록되었습니다.\n\n⚠️ 중요: Supabase에서 이메일 확인이 필요할 수 있습니다.\n\n해결방법:\n1. Supabase Dashboard → Authentication → Email Auth\n2. "Enable email confirmations" 옵션 끄기\n\n또는 등록된 이메일로 전송된 확인 링크를 클릭해주세요.')
+        alert(`✅ 사원이 등록되었습니다.\n\n📧 이메일: ${formData.email}\n🔑 초기 비밀번호: ${password}\n\n⚠️ 등록된 이메일로 확인 링크가 전송되었습니다.\n확인 링크를 클릭하면 로그인할 수 있습니다.`)
       } catch (error) {
         console.error('Employee registration error:', error)
         alert('사원 등록 실패: ' + error.message)
@@ -428,25 +428,25 @@ const Employees = () => {
                 </div>
                 {!editingEmployee && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">비밀번호 *</label>
-                    <div className="relative">
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        required
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        minLength={6}
-                        className="block w-full px-3 py-2 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
-                        placeholder="최소 6자 이상"
-                      />
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-sm font-medium text-gray-700">비밀번호 *</label>
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 transition-colors"
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
                       >
                         {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                       </button>
                     </div>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      minLength={6}
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                      placeholder="최소 6자 이상"
+                    />
                     <p className="mt-1 text-xs text-gray-500">로그인 시 사용될 비밀번호</p>
                   </div>
                 )}

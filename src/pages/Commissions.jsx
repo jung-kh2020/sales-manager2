@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../services/supabase'
 import { format } from 'date-fns'
-import { CheckCircle, Circle, Download } from 'lucide-react'
+import { CheckCircle, Circle, ChevronDown, ChevronRight } from 'lucide-react'
 
 const Commissions = () => {
   const [commissions, setCommissions] = useState([])
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'))
   const [loading, setLoading] = useState(false)
+  const [expandedRows, setExpandedRows] = useState(new Set())
 
   useEffect(() => {
     calculateCommissions()
@@ -26,7 +27,8 @@ const Commissions = () => {
         .from('sales')
         .select(`
           *,
-          employees (id, name, employee_code)
+          employees (id, name, employee_code),
+          products (id, name, price, cost)
         `)
         .gte('sale_date', monthStart)
         .lte('sale_date', monthEnd)
@@ -228,6 +230,16 @@ const Commissions = () => {
     }
   }
 
+  const toggleRow = (employeeId) => {
+    const newExpanded = new Set(expandedRows)
+    if (newExpanded.has(employeeId)) {
+      newExpanded.delete(employeeId)
+    } else {
+      newExpanded.add(employeeId)
+    }
+    setExpandedRows(newExpanded)
+  }
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('ko-KR', {
       style: 'currency',
@@ -313,69 +325,160 @@ const Commissions = () => {
                   </td>
                 </tr>
               ) : (
-                commissions.map((commission, index) => (
-                  <tr key={index} className={commission.is_paid ? 'bg-green-50' : ''}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{commission.employee.name}</div>
-                      <div className="text-sm text-gray-500">{commission.employee.employee_code}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatCurrency(commission.totalSales)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {commission.salesCount}건
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatCurrency(commission.baseCommission)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {commission.hasBonus ? (
-                        <span className="text-green-600 font-medium">
-                          {formatCurrency(commission.bonusCommission)}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400">-</span>
+                commissions.map((commission, index) => {
+                  const isExpanded = expandedRows.has(commission.employee.id)
+                  return (
+                    <>
+                      <tr key={index} className={commission.is_paid ? 'bg-green-50' : ''}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{commission.employee.name}</div>
+                          <div className="text-sm text-gray-500">{commission.employee.employee_code}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {formatCurrency(commission.totalSales)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <button
+                            onClick={() => toggleRow(commission.employee.id)}
+                            className="flex items-center gap-1 text-blue-600 hover:text-blue-800"
+                          >
+                            {isExpanded ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )}
+                            {commission.salesCount}건
+                          </button>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {formatCurrency(commission.baseCommission)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {commission.hasBonus ? (
+                            <span className="text-green-600 font-medium">
+                              {formatCurrency(commission.bonusCommission)}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                          {formatCurrency(commission.totalCommission)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {commission.hasBonus ? (
+                            <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
+                              ✅ 목표 달성
+                            </span>
+                          ) : (
+                            <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-600">
+                              미달성
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button
+                            onClick={() => togglePaidStatus(commission)}
+                            className="flex items-center gap-2 text-sm"
+                          >
+                            {commission.is_paid ? (
+                              <>
+                                <CheckCircle className="h-5 w-5 text-green-600" />
+                                <span className="text-green-600">지급 완료</span>
+                              </>
+                            ) : (
+                              <>
+                                <Circle className="h-5 w-5 text-gray-400" />
+                                <span className="text-gray-600">미지급</span>
+                              </>
+                            )}
+                          </button>
+                          {commission.paid_date && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              {format(new Date(commission.paid_date), 'yyyy-MM-dd')}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+
+                      {/* 세부 내역 행 */}
+                      {isExpanded && (
+                        <tr className="bg-gray-50">
+                          <td colSpan="8" className="px-6 py-4">
+                            <div className="space-y-2">
+                              <h4 className="text-sm font-semibold text-gray-700 mb-3">판매 세부 내역</h4>
+                              <div className="bg-white rounded border border-gray-200">
+                                <table className="min-w-full">
+                                  <thead className="bg-gray-100">
+                                    <tr>
+                                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-600">판매일</th>
+                                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-600">제품명</th>
+                                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-600">수량</th>
+                                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-600">단가</th>
+                                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-600">판매금액</th>
+                                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-600">원가</th>
+                                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-600">마진</th>
+                                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-600">유형</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-gray-200">
+                                    {commission.sales.map((sale, saleIndex) => {
+                                      const isOnline = sale.customer_name === undefined && sale.total_amount !== undefined
+                                      const salePrice = isOnline
+                                        ? (sale.total_amount / sale.quantity)
+                                        : (sale.sale_price > 0 ? sale.sale_price : sale.products?.price || 0)
+                                      const saleCost = isOnline
+                                        ? (sale.products?.cost || 0)
+                                        : (sale.sale_cost > 0 ? sale.sale_cost : sale.products?.cost || 0)
+                                      const totalAmount = isOnline
+                                        ? sale.total_amount
+                                        : (salePrice * sale.quantity)
+                                      const totalCost = saleCost * sale.quantity
+                                      const margin = totalAmount - totalCost
+
+                                      return (
+                                        <tr key={saleIndex} className="hover:bg-gray-50">
+                                          <td className="px-4 py-2 text-sm text-gray-900">
+                                            {format(new Date(sale.sale_date || sale.created_at), 'yyyy-MM-dd')}
+                                          </td>
+                                          <td className="px-4 py-2 text-sm text-gray-900">
+                                            {sale.products?.name || `제품 ID: ${sale.product_id}`}
+                                          </td>
+                                          <td className="px-4 py-2 text-sm text-gray-900">{sale.quantity}</td>
+                                          <td className="px-4 py-2 text-sm text-gray-900">
+                                            {formatCurrency(salePrice)}
+                                          </td>
+                                          <td className="px-4 py-2 text-sm font-medium text-gray-900">
+                                            {formatCurrency(totalAmount)}
+                                          </td>
+                                          <td className="px-4 py-2 text-sm text-gray-600">
+                                            {formatCurrency(totalCost)}
+                                          </td>
+                                          <td className="px-4 py-2 text-sm text-green-600 font-medium">
+                                            {formatCurrency(margin)}
+                                          </td>
+                                          <td className="px-4 py-2 text-sm">
+                                            <span className={`px-2 py-1 text-xs rounded-full ${
+                                              isOnline
+                                                ? 'bg-blue-100 text-blue-800'
+                                                : 'bg-gray-100 text-gray-800'
+                                            }`}>
+                                              {isOnline ? '온라인' : '오프라인'}
+                                            </span>
+                                          </td>
+                                        </tr>
+                                      )
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
                       )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                      {formatCurrency(commission.totalCommission)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {commission.hasBonus ? (
-                        <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
-                          ✅ 목표 달성
-                        </span>
-                      ) : (
-                        <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-600">
-                          미달성
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <button
-                        onClick={() => togglePaidStatus(commission)}
-                        className="flex items-center gap-2 text-sm"
-                      >
-                        {commission.is_paid ? (
-                          <>
-                            <CheckCircle className="h-5 w-5 text-green-600" />
-                            <span className="text-green-600">지급 완료</span>
-                          </>
-                        ) : (
-                          <>
-                            <Circle className="h-5 w-5 text-gray-400" />
-                            <span className="text-gray-600">미지급</span>
-                          </>
-                        )}
-                      </button>
-                      {commission.paid_date && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          {format(new Date(commission.paid_date), 'yyyy-MM-dd')}
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))
+                    </>
+                  )
+                })
               )}
             </tbody>
           </table>

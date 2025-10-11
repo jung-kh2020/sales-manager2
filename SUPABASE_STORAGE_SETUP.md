@@ -16,16 +16,25 @@
    - **Public bucket**: ✅ 체크 (공개 버킷으로 설정)
 3. **Create bucket** 버튼 클릭
 
-## 3단계: 정책 설정 (선택사항)
+## 3단계: 정책 설정 (필수)
 
-기본적으로 public 버킷은 누구나 읽을 수 있지만, 업로드는 제한됩니다.
-인증된 사용자만 업로드하도록 설정하려면:
+기본적으로 public 버킷은 누구나 읽을 수 있지만, 업로드/삭제는 제한됩니다.
+고객이 이미지를 업로드하고, 미리보고, 삭제 후 재업로드할 수 있도록 정책을 설정해야 합니다.
 
 1. 생성된 `order-images` 버킷 클릭
 2. **Policies** 탭 클릭
-3. **New Policy** 버튼 클릭
+3. **New Policy** 버튼 클릭하여 아래 3개 정책을 모두 생성
 
-### 업로드 정책 (모든 사용자 허용)
+### 필요한 권한 정리
+
+| 페이지 | 필요한 작업 | Allowed operation |
+|--------|------------|-------------------|
+| ProductCatalog (고객) | 업로드 | `INSERT` |
+| ProductCatalog (고객) | 미리보기 | `SELECT` |
+| ProductCatalog (고객) | 삭제 후 재업로드 | `DELETE` |
+| OnlineOrders (관리자) | 보기/다운로드 | `SELECT` |
+
+### 1️⃣ 업로드 정책 (모든 사용자 허용)
 
 **UI 설정:**
 - Policy name: `Allow public uploads`
@@ -41,23 +50,7 @@ TO public
 WITH CHECK (bucket_id = 'order-images');
 ```
 
-### 업로드 정책 (인증된 사용자만 허용) - 권장
-
-**UI 설정:**
-- Policy name: `Allow authenticated uploads`
-- **Allowed operation**: `INSERT` ✅ (체크박스 선택)
-- Target roles: `authenticated`
-- WITH CHECK expression: `bucket_id = 'order-images'`
-
-**SQL:**
-```sql
-CREATE POLICY "Allow authenticated uploads"
-ON storage.objects FOR INSERT
-TO authenticated
-WITH CHECK (bucket_id = 'order-images');
-```
-
-### 읽기 정책 (이미 public 버킷이면 자동 적용됨)
+### 2️⃣ 읽기 정책 (모든 사용자 허용)
 
 **UI 설정:**
 - Policy name: `Allow public read`
@@ -73,13 +66,39 @@ TO public
 USING (bucket_id = 'order-images');
 ```
 
-> **참고**: Supabase UI에서 정책을 생성할 때, Allowed operation에는 여러 옵션이 있습니다:
-> - `SELECT` - 읽기 (다운로드)
-> - `INSERT` - 생성 (업로드)
-> - `UPDATE` - 수정
-> - `DELETE` - 삭제
->
-> 각 작업에 맞는 operation을 선택하세요.
+### 3️⃣ 삭제 정책 (모든 사용자 허용) ⚠️ 중요!
+
+**UI 설정:**
+- Policy name: `Allow public delete`
+- **Allowed operation**: `DELETE` ✅ (체크박스 선택)
+- Target roles: `public`
+- USING expression: `bucket_id = 'order-images'`
+
+**SQL:**
+```sql
+CREATE POLICY "Allow public delete"
+ON storage.objects FOR DELETE
+TO public
+USING (bucket_id = 'order-images');
+```
+
+> **⚠️ 보안 참고**:
+> - 위 정책은 누구나 이미지를 삭제할 수 있습니다
+> - 더 안전한 방법: 업로드 시 고유 세션 ID를 파일명에 포함하고, 해당 세션의 파일만 삭제하도록 제한
+> - 프로덕션 환경에서는 삭제 정책을 더 엄격하게 설정하는 것을 권장합니다
+
+### 대안: 인증된 사용자만 허용 (더 안전)
+
+고객도 간단한 인증(이메일 인증 등)을 거치도록 하려면, `public` 대신 `authenticated`를 사용:
+
+```sql
+-- 인증된 사용자만 업로드/삭제 가능
+CREATE POLICY "Allow authenticated uploads" ON storage.objects
+FOR INSERT TO authenticated WITH CHECK (bucket_id = 'order-images');
+
+CREATE POLICY "Allow authenticated delete" ON storage.objects
+FOR DELETE TO authenticated USING (bucket_id = 'order-images');
+```
 
 ## 4단계: 데이터베이스 마이그레이션 실행
 

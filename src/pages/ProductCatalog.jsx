@@ -127,8 +127,35 @@ const ProductCatalog = () => {
     }
   }
 
-  const removeImage = (index) => {
-    setUploadedImages(uploadedImages.filter((_, i) => i !== index))
+  const removeImage = async (index) => {
+    const imageUrl = uploadedImages[index]
+
+    try {
+      // URL에서 파일 경로 추출
+      // 예: https://xxx.supabase.co/storage/v1/object/public/order-images/123456.jpg
+      // -> order-images/123456.jpg
+      const urlParts = imageUrl.split('/storage/v1/object/public/')
+      if (urlParts.length === 2) {
+        const filePath = urlParts[1] // "order-images/123456.jpg"
+
+        // Supabase Storage에서 파일 삭제
+        const { error } = await supabase.storage
+          .from('order-images')
+          .remove([filePath.replace('order-images/', '')])
+
+        if (error) {
+          console.error('Storage delete error:', error)
+          // 오류가 있어도 UI에서는 제거 (이미 삭제되었거나 권한 문제일 수 있음)
+        }
+      }
+
+      // 상태에서 제거
+      setUploadedImages(uploadedImages.filter((_, i) => i !== index))
+    } catch (error) {
+      console.error('Remove image error:', error)
+      // 오류가 발생해도 상태에서는 제거
+      setUploadedImages(uploadedImages.filter((_, i) => i !== index))
+    }
   }
 
   const handleCardPayment = () => {

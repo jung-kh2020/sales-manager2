@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../services/supabase'
-import { ShoppingCart, CreditCard, Package, Star, CheckCircle, Building2, X, Copy } from 'lucide-react'
+import { ShoppingCart, CreditCard, Package, Star, CheckCircle, Building2, X, Copy, AlertTriangle, User } from 'lucide-react'
 
 const ProductCatalog = () => {
   const { id } = useParams()
@@ -297,8 +297,41 @@ const ProductCatalog = () => {
 
           {/* 주문 폼 */}
           <div className="space-y-6">
-            {/* 수량 선택 */}
-            <div className="bg-white rounded-xl shadow-card border border-gray-100 p-6">
+            {/* 판매사원 확인 - 사원 없으면 구매 차단 */}
+            {!employee && (
+              <div className="bg-red-50 border-2 border-red-200 rounded-xl p-8">
+                <div className="text-center">
+                  <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                    <AlertTriangle className="h-8 w-8 text-red-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-red-900 mb-3">판매사원을 통해 구매해주세요</h3>
+                  <p className="text-red-800 mb-6 leading-relaxed">
+                    이 상품은 담당 판매사원을 통해서만 구매가 가능합니다.<br />
+                    판매사원이 제공한 전용 링크를 통해 접속해주세요.
+                  </p>
+                  
+                </div>
+              </div>
+            )}
+
+            {/* 사원이 있을 때만 주문 폼 표시 */}
+            {employee && (
+              <>
+                {/* 담당 사원 정보 */}
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                      <User className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-blue-600 font-medium">담당 판매사원</p>
+                      <p className="text-sm font-bold text-blue-900">{employee.name}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 수량 선택 */}
+                <div className="bg-white rounded-xl shadow-card border border-gray-100 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">주문 정보</h2>
               <div className="space-y-4">
                 <div>
@@ -433,6 +466,8 @@ const ProductCatalog = () => {
                 </p>
               </div>
             </div>
+              </>
+            )}
           </div>
         </div>
       </div>

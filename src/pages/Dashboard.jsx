@@ -61,7 +61,6 @@ const Dashboard = () => {
         .from('sales')
         .select(`
           *,
-          products (price, cost),
           employees (name)
         `)
         .gte('sale_date', startDate)
@@ -88,8 +87,8 @@ const Dashboard = () => {
 
       // 오프라인 판매 집계
       salesData?.forEach(sale => {
-        const saleAmount = sale.products.price * sale.quantity
-        const costAmount = sale.products.cost * sale.quantity
+        const saleAmount = sale.sale_price * sale.quantity
+        const costAmount = sale.sale_cost * sale.quantity
         totalSales += saleAmount
         totalCost += costAmount
       })
@@ -128,6 +127,7 @@ const Dashboard = () => {
         ...(salesData || []).map(sale => ({
           ...sale,
           sale_date: sale.sale_date,
+          sale_price: sale.sale_price,  // 오프라인: 저장된 가격 사용
           type: 'offline'
         })),
         ...(ordersData || []).map(order => ({
@@ -136,6 +136,7 @@ const Dashboard = () => {
           products: order.products,
           employees: order.employees,
           quantity: order.quantity,
+          sale_price: order.total_amount ? order.total_amount / order.quantity : order.products.price,  // 온라인: total_amount 우선
           type: 'online'
         }))
       ].sort((a, b) => new Date(b.sale_date) - new Date(a.sale_date))
@@ -367,7 +368,7 @@ const Dashboard = () => {
                       {sale.quantity}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                      {formatCurrency(sale.products?.price * sale.quantity)}
+                      {formatCurrency(sale.sale_price * sale.quantity)}
                     </td>
                   </tr>
                 ))

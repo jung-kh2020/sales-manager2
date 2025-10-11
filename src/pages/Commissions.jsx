@@ -26,8 +26,7 @@ const Commissions = () => {
         .from('sales')
         .select(`
           *,
-          employees (id, name, employee_code),
-          products (price, cost)
+          employees (id, name, employee_code)
         `)
         .gte('sale_date', monthStart)
         .lte('sale_date', monthEnd)
@@ -64,8 +63,8 @@ const Commissions = () => {
         }
 
         const empData = employeeMap.get(empId)
-        const saleAmount = sale.products.price * sale.quantity
-        const costAmount = sale.products.cost * sale.quantity
+        const saleAmount = sale.sale_price * sale.quantity
+        const costAmount = sale.sale_cost * sale.quantity
 
         empData.sales.push(sale)
         empData.totalSales += saleAmount

@@ -36,6 +36,8 @@ CREATE TABLE sales (
   product_id BIGINT REFERENCES products(id) ON DELETE RESTRICT,
   sale_date DATE NOT NULL,
   quantity INTEGER DEFAULT 1,
+  sale_price INTEGER NOT NULL,  -- 판매 시점의 제품 가격 (스냅샷)
+  sale_cost INTEGER NOT NULL,   -- 판매 시점의 제품 원가 (스냅샷)
   customer_name VARCHAR(100),
   note TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

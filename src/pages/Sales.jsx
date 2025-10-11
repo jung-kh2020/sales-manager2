@@ -41,7 +41,7 @@ const Sales = () => {
       .select(`
         *,
         employees (name),
-        products (name, price, cost)
+        products (name)
       `)
       .order('sale_date', { ascending: false })
 
@@ -97,11 +97,20 @@ const Sales = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
+    // 선택된 제품의 현재 가격/원가 가져오기
+    const selectedProduct = products.find(p => p.id === parseInt(formData.product_id))
+    if (!selectedProduct) {
+      alert('제품을 선택해주세요.')
+      return
+    }
+
     const submitData = {
       ...formData,
       employee_id: parseInt(formData.employee_id),
       product_id: parseInt(formData.product_id),
       quantity: parseInt(formData.quantity),
+      sale_price: selectedProduct.price,  // 판매 시점의 가격 스냅샷
+      sale_cost: selectedProduct.cost,    // 판매 시점의 원가 스냅샷
     }
 
     if (editingSale) {
@@ -279,7 +288,7 @@ const Sales = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{sale.products?.name}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{sale.quantity}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {formatCurrency(sale.products?.price * sale.quantity)}
+                    {formatCurrency(sale.sale_price * sale.quantity)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{sale.customer_name || '-'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">

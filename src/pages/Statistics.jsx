@@ -82,7 +82,7 @@ const Statistics = () => {
         .from('sales')
         .select(`
           *,
-          products (name, price),
+          products (name),
           employees (name)
         `)
         .gte('sale_date', startDate)
@@ -111,7 +111,7 @@ const Statistics = () => {
       // 오프라인 판매 집계
       salesData?.forEach(sale => {
         const month = format(new Date(sale.sale_date), 'yyyy-MM')
-        const saleAmount = sale.products.price * sale.quantity
+        const saleAmount = sale.sale_price * sale.quantity
 
         // 월별 매출
         monthlyData.set(month, (monthlyData.get(month) || 0) + saleAmount)

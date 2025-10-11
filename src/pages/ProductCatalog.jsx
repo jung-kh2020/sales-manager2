@@ -527,16 +527,16 @@ const ProductCatalog = () => {
             <div className="space-y-4 bg-gray-50 rounded-lg p-4 mb-6">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">은행</span>
-                <span className="font-semibold text-gray-900">국민은행</span>
+                <span className="font-semibold text-gray-900">농협은행</span>
               </div>
               <div className="border-t border-gray-200"></div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">계좌번호</span>
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-gray-900">123-456-789012</span>
+                  <span className="font-semibold text-gray-900">351-1315-4698-33</span>
                   <button
                     onClick={() => {
-                      navigator.clipboard.writeText('123-456-789012')
+                      navigator.clipboard.writeText('351-1315-4698-33')
                       alert('계좌번호가 복사되었습니다!')
                     }}
                     className="text-blue-600 hover:text-blue-700"
@@ -548,7 +548,7 @@ const ProductCatalog = () => {
               <div className="border-t border-gray-200"></div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">예금주</span>
-                <span className="font-semibold text-gray-900">(주)리뷰999플러스</span>
+                <span className="font-semibold text-gray-900">(주)팜링스</span>
               </div>
               <div className="border-t border-gray-200"></div>
               <div className="flex justify-between items-center">

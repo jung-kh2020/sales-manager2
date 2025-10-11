@@ -111,8 +111,11 @@ const EmployeeDashboard = () => {
       const ordersData = orders || []
       const salesData = sales || []
 
-      // 온라인 주문 통계
-      const onlineSales = ordersData.reduce((sum, order) => sum + order.total_amount, 0)
+      // 완료된 온라인 주문만 필터링 (cancelled 제외)
+      const completedOrders = ordersData.filter(order => order.status === 'completed')
+
+      // 온라인 주문 통계 (완료된 주문만)
+      const onlineSales = completedOrders.reduce((sum, order) => sum + order.total_amount, 0)
 
       // 오프라인 판매 통계
       const offlineSales = salesData.reduce((sum, sale) => {
@@ -155,7 +158,7 @@ const EmployeeDashboard = () => {
       console.log('📊 Final stats:', {
         totalSales,
         monthlyCommission,
-        totalOrders: ordersData.length + salesData.length,
+        totalOrders: completedOrders.length + salesData.length,
         onlineSales,
         offlineSales,
         combinedOrders: combinedOrders.length
@@ -164,10 +167,10 @@ const EmployeeDashboard = () => {
       setStats({
         monthlySales: totalSales,
         monthlyCommission,
-        totalOrders: ordersData.length + salesData.length,
+        totalOrders: completedOrders.length + salesData.length,
         onlineSales,
         offlineSales,
-        onlineCount: ordersData.length,
+        onlineCount: completedOrders.length,
         offlineCount: salesData.length,
         thisMonthOrders: combinedOrders
       })
@@ -422,9 +425,11 @@ const EmployeeDashboard = () => {
                       <span className={`px-2 py-1 text-xs rounded-full ${
                         order.status === 'completed'
                           ? 'bg-green-100 text-green-800'
+                          : order.status === 'cancelled'
+                          ? 'bg-red-100 text-red-800'
                           : 'bg-yellow-100 text-yellow-800'
                       }`}>
-                        {order.status === 'completed' ? '완료' : '대기'}
+                        {order.status === 'completed' ? '완료' : order.status === 'cancelled' ? '취소' : '대기'}
                       </span>
                     </td>
                   </tr>

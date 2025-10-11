@@ -93,13 +93,15 @@ const Dashboard = () => {
         totalCost += costAmount
       })
 
-      // 온라인 주문 집계
-      ordersData?.forEach(order => {
-        const orderAmount = order.total_amount || (order.products.price * order.quantity)
-        const costAmount = order.products.cost * order.quantity
-        totalSales += orderAmount
-        totalCost += costAmount
-      })
+      // 온라인 주문 집계 (완료된 주문만)
+      ordersData
+        ?.filter(order => order.status === 'completed')
+        .forEach(order => {
+          const orderAmount = order.total_amount || (order.products.price * order.quantity)
+          const costAmount = order.products.cost * order.quantity
+          totalSales += orderAmount
+          totalCost += costAmount
+        })
 
       const totalMargin = totalSales - totalCost
       const baseCommission = totalSales * 0.25
@@ -122,7 +124,7 @@ const Dashboard = () => {
         employeeCount: employeeCount || 0,
       })
 
-      // 최근 판매 내역 (온라인 + 오프라인 통합)
+      // 최근 판매 내역 (온라인 + 오프라인 통합, 완료된 주문만)
       const combinedSales = [
         ...(salesData || []).map(sale => ({
           ...sale,
@@ -130,15 +132,17 @@ const Dashboard = () => {
           sale_price: sale.sale_price,  // 오프라인: 저장된 가격 사용
           type: 'offline'
         })),
-        ...(ordersData || []).map(order => ({
-          id: order.id,
-          sale_date: order.created_at?.split('T')[0],
-          products: order.products,
-          employees: order.employees,
-          quantity: order.quantity,
-          sale_price: order.total_amount ? order.total_amount / order.quantity : order.products.price,  // 온라인: total_amount 우선
-          type: 'online'
-        }))
+        ...(ordersData || [])
+          .filter(order => order.status === 'completed')  // 완료된 주문만
+          .map(order => ({
+            id: order.id,
+            sale_date: order.created_at?.split('T')[0],
+            products: order.products,
+            employees: order.employees,
+            quantity: order.quantity,
+            sale_price: order.total_amount ? order.total_amount / order.quantity : order.products.price,  // 온라인: total_amount 우선
+            type: 'online'
+          }))
       ].sort((a, b) => new Date(b.sale_date) - new Date(a.sale_date))
 
       setRecentSales(combinedSales.slice(0, 10))

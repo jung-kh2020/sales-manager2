@@ -74,31 +74,33 @@ const Commissions = () => {
         empData.salesCount += 1
       })
 
-      // 온라인 주문 집계
-      ordersData?.forEach(order => {
-        // 판매자가 연결된 주문만 처리
-        if (order.employees?.id) {
-          const empId = order.employees.id
-          if (!employeeMap.has(empId)) {
-            employeeMap.set(empId, {
-              employee: order.employees,
-              sales: [],
-              totalSales: 0,
-              totalCost: 0,
-              salesCount: 0,
-            })
+      // 온라인 주문 집계 (완료된 주문만)
+      ordersData
+        ?.filter(order => order.status === 'completed')  // 완료된 주문만
+        .forEach(order => {
+          // 판매자가 연결된 주문만 처리
+          if (order.employees?.id) {
+            const empId = order.employees.id
+            if (!employeeMap.has(empId)) {
+              employeeMap.set(empId, {
+                employee: order.employees,
+                sales: [],
+                totalSales: 0,
+                totalCost: 0,
+                salesCount: 0,
+              })
+            }
+
+            const empData = employeeMap.get(empId)
+            const orderAmount = order.total_amount || (order.products.price * order.quantity)
+            const costAmount = order.products.cost * order.quantity
+
+            empData.sales.push(order)
+            empData.totalSales += orderAmount
+            empData.totalCost += costAmount
+            empData.salesCount += 1
           }
-
-          const empData = employeeMap.get(empId)
-          const orderAmount = order.total_amount || (order.products.price * order.quantity)
-          const costAmount = order.products.cost * order.quantity
-
-          empData.sales.push(order)
-          empData.totalSales += orderAmount
-          empData.totalCost += costAmount
-          empData.salesCount += 1
-        }
-      })
+        })
 
       // 수수료 계산
       const commissionsData = Array.from(employeeMap.values()).map(empData => {
@@ -423,7 +425,8 @@ const Commissions = () => {
                                   </thead>
                                   <tbody className="divide-y divide-gray-200">
                                     {commission.sales.map((sale, saleIndex) => {
-                                      const isOnline = sale.customer_name === undefined && sale.total_amount !== undefined
+                                      // 온라인 주문은 created_at 필드를 가지고, 오프라인은 sale_date를 가짐
+                                      const isOnline = sale.created_at !== undefined && sale.total_amount !== undefined
                                       const salePrice = isOnline
                                         ? (sale.total_amount / sale.quantity)
                                         : (sale.sale_price > 0 ? sale.sale_price : sale.products?.price || 0)

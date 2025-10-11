@@ -125,24 +125,26 @@ const Statistics = () => {
         employeeData.set(employeeName, (employeeData.get(employeeName) || 0) + saleAmount)
       })
 
-      // 온라인 주문 집계
-      ordersData?.forEach(order => {
-        const month = format(new Date(order.created_at), 'yyyy-MM')
-        const orderAmount = order.total_amount || (order.products.price * order.quantity)
+      // 온라인 주문 집계 (완료된 주문만)
+      ordersData
+        ?.filter(order => order.status === 'completed')  // 완료된 주문만
+        .forEach(order => {
+          const month = format(new Date(order.created_at), 'yyyy-MM')
+          const orderAmount = order.total_amount || (order.products.price * order.quantity)
 
-        // 월별 매출
-        monthlyData.set(month, (monthlyData.get(month) || 0) + orderAmount)
+          // 월별 매출
+          monthlyData.set(month, (monthlyData.get(month) || 0) + orderAmount)
 
-        // 상품별 매출
-        const productName = order.products.name
-        productData.set(productName, (productData.get(productName) || 0) + orderAmount)
+          // 상품별 매출
+          const productName = order.products.name
+          productData.set(productName, (productData.get(productName) || 0) + orderAmount)
 
-        // 사원별 매출 (판매자가 있는 경우만)
-        if (order.employees?.name) {
-          const employeeName = order.employees.name
-          employeeData.set(employeeName, (employeeData.get(employeeName) || 0) + orderAmount)
-        }
-      })
+          // 사원별 매출 (판매자가 있는 경우만)
+          if (order.employees?.name) {
+            const employeeName = order.employees.name
+            employeeData.set(employeeName, (employeeData.get(employeeName) || 0) + orderAmount)
+          }
+        })
 
       // 월별 매출 추이 데이터 정렬
       const months = []

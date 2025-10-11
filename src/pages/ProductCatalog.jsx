@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../services/supabase'
-import { ShoppingCart, CreditCard, Package, Star, CheckCircle, Building2, X, Copy, AlertTriangle, User } from 'lucide-react'
+import { ShoppingCart, CreditCard, Package, Star, CheckCircle, Building2, X, Copy, AlertTriangle, User, Upload, Image as ImageIcon } from 'lucide-react'
 
 const ProductCatalog = () => {
   const { id } = useParams()
@@ -12,11 +12,14 @@ const ProductCatalog = () => {
   const [loading, setLoading] = useState(true)
   const [quantity, setQuantity] = useState(1)
   const [customerInfo, setCustomerInfo] = useState({
+    businessName: '',
     name: '',
     email: '',
     phone: '',
-    address: ''
+    naverPlaceAddress: ''
   })
+  const [uploadedImages, setUploadedImages] = useState([])
+  const [uploading, setUploading] = useState(false)
   const [showPayment, setShowPayment] = useState(false)
   const [showAccountModal, setShowAccountModal] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState('')
@@ -78,9 +81,63 @@ const ProductCatalog = () => {
     return amount + calculateVAT(amount)
   }
 
+  const handleImageUpload = async (e) => {
+    const files = Array.from(e.target.files)
+    if (files.length === 0) return
+
+    if (uploadedImages.length + files.length > 5) {
+      alert('최대 5개의 이미지만 업로드할 수 있습니다.')
+      return
+    }
+
+    setUploading(true)
+    try {
+      const uploadPromises = files.map(async (file) => {
+        // 파일명 생성: timestamp_randomstring_originalname
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`
+        const filePath = `order-images/${fileName}`
+
+        // Supabase Storage에 업로드
+        const { data, error } = await supabase.storage
+          .from('order-images')
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false
+          })
+
+        if (error) throw error
+
+        // Public URL 가져오기
+        const { data: { publicUrl } } = supabase.storage
+          .from('order-images')
+          .getPublicUrl(filePath)
+
+        return publicUrl
+      })
+
+      const uploadedUrls = await Promise.all(uploadPromises)
+      setUploadedImages([...uploadedImages, ...uploadedUrls])
+      alert(`${files.length}개의 이미지가 업로드되었습니다.`)
+    } catch (error) {
+      console.error('Image upload error:', error)
+      alert('이미지 업로드 중 오류가 발생했습니다: ' + error.message)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const removeImage = (index) => {
+    setUploadedImages(uploadedImages.filter((_, i) => i !== index))
+  }
+
   const handleCardPayment = () => {
-    if (!customerInfo.name || !customerInfo.email || !customerInfo.phone) {
+    if (!customerInfo.businessName || !customerInfo.name || !customerInfo.email || !customerInfo.phone || !customerInfo.naverPlaceAddress) {
       alert('필수 정보를 모두 입력해주세요.')
+      return
+    }
+    if (uploadedImages.length === 0) {
+      alert('최소 1개의 사진을 업로드해주세요.')
       return
     }
     alert('카드결제 서비스 준비중입니다.\n\n빠른 시일 내에 오픈 예정입니다. 😊')
@@ -88,8 +145,13 @@ const ProductCatalog = () => {
 
   const handleBankTransfer = async () => {
     // 1. 필수 정보 확인
-    if (!customerInfo.name || !customerInfo.email || !customerInfo.phone) {
+    if (!customerInfo.businessName || !customerInfo.name || !customerInfo.email || !customerInfo.phone || !customerInfo.naverPlaceAddress) {
       alert('필수 정보를 모두 입력해주세요.')
+      return
+    }
+
+    if (uploadedImages.length === 0) {
+      alert('최소 1개의 사진을 업로드해주세요.')
       return
     }
 
@@ -98,10 +160,12 @@ const ProductCatalog = () => {
       const orderData = {
         product_id: product.id,
         employee_id: employee?.id || null,
+        business_name: customerInfo.businessName,
         customer_name: customerInfo.name,
         customer_email: customerInfo.email,
         customer_phone: customerInfo.phone,
-        customer_address: customerInfo.address || '',
+        naver_place_address: customerInfo.naverPlaceAddress,
+        image_urls: uploadedImages, // JSON 배열로 저장
         quantity: quantity,
         total_amount: product.price * quantity,
         status: 'pending_payment', // 입금 대기
@@ -372,10 +436,21 @@ const ProductCatalog = () => {
               </div>
             </div>
 
-            {/* 고객 정보 */}
+            {/* 정보입력 */}
             <div className="bg-white rounded-xl shadow-card border border-gray-100 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">배송 정보</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">정보입력</h2>
               <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">상호명 *</label>
+                  <input
+                    type="text"
+                    required
+                    value={customerInfo.businessName}
+                    onChange={(e) => setCustomerInfo({ ...customerInfo, businessName: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="예: 홍길동 치킨"
+                  />
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">이름 *</label>
                   <input
@@ -385,17 +460,6 @@ const ProductCatalog = () => {
                     onChange={(e) => setCustomerInfo({ ...customerInfo, name: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="홍길동"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">이메일 *</label>
-                  <input
-                    type="email"
-                    required
-                    value={customerInfo.email}
-                    onChange={(e) => setCustomerInfo({ ...customerInfo, email: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="example@email.com"
                   />
                 </div>
                 <div>
@@ -410,14 +474,72 @@ const ProductCatalog = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">배송주소</label>
-                  <textarea
-                    value={customerInfo.address}
-                    onChange={(e) => setCustomerInfo({ ...customerInfo, address: e.target.value })}
-                    rows="3"
+                  <label className="block text-sm font-medium text-gray-700 mb-1">이메일 *</label>
+                  <input
+                    type="email"
+                    required
+                    value={customerInfo.email}
+                    onChange={(e) => setCustomerInfo({ ...customerInfo, email: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="서울시 강남구 테헤란로 123"
+                    placeholder="example@email.com"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">네이버 플레이스 주소 *</label>
+                  <textarea
+                    required
+                    value={customerInfo.naverPlaceAddress}
+                    onChange={(e) => setCustomerInfo({ ...customerInfo, naverPlaceAddress: e.target.value })}
+                    rows="2"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="https://naver.me/xxxxx"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    사진 업로드 * (최대 5개)
+                  </label>
+                  <div className="space-y-3">
+                    <label className="flex items-center justify-center w-full h-32 px-4 transition bg-white border-2 border-gray-300 border-dashed rounded-lg appearance-none cursor-pointer hover:border-blue-400 focus:outline-none">
+                      <div className="flex flex-col items-center space-y-2">
+                        <Upload className="h-8 w-8 text-gray-400" />
+                        <span className="text-sm text-gray-500">
+                          {uploading ? '업로드 중...' : '클릭하여 이미지 선택'}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          ({uploadedImages.length}/5)
+                        </span>
+                      </div>
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        disabled={uploading || uploadedImages.length >= 5}
+                        className="hidden"
+                      />
+                    </label>
+
+                    {uploadedImages.length > 0 && (
+                      <div className="grid grid-cols-3 gap-2">
+                        {uploadedImages.map((url, index) => (
+                          <div key={index} className="relative group">
+                            <img
+                              src={url}
+                              alt={`업로드 이미지 ${index + 1}`}
+                              className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                            />
+                            <button
+                              onClick={() => removeImage(index)}
+                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

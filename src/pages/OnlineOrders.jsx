@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../services/supabase'
 import { format, formatDistanceToNow, differenceInHours } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import { ShoppingCart, CheckCircle, XCircle, Clock, AlertTriangle, Filter } from 'lucide-react'
+import { ShoppingCart, CheckCircle, XCircle, Clock, AlertTriangle, Filter, Eye, Download, Image as ImageIcon } from 'lucide-react'
 
 const OnlineOrders = () => {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('all') // 'all', 'pending_payment', 'completed', 'cancelled'
+  const [selectedOrder, setSelectedOrder] = useState(null)
+  const [showDetailModal, setShowDetailModal] = useState(false)
 
   useEffect(() => {
     fetchOrders()
@@ -101,6 +103,46 @@ const OnlineOrders = () => {
       style: 'currency',
       currency: 'KRW',
     }).format(amount)
+  }
+
+  const downloadImage = async (url, filename) => {
+    try {
+      const response = await fetch(url)
+      const blob = await response.blob()
+      const blobUrl = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = blobUrl
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(blobUrl)
+    } catch (error) {
+      console.error('Image download error:', error)
+      alert('이미지 다운로드 중 오류가 발생했습니다.')
+    }
+  }
+
+  const downloadAllImages = async (order) => {
+    if (!order.image_urls || order.image_urls.length === 0) {
+      alert('다운로드할 이미지가 없습니다.')
+      return
+    }
+
+    for (let i = 0; i < order.image_urls.length; i++) {
+      const url = order.image_urls[i]
+      const filename = `order_${order.id}_image_${i + 1}.jpg`
+      await downloadImage(url, filename)
+      // 다운로드 사이 약간의 딜레이 추가
+      await new Promise(resolve => setTimeout(resolve, 300))
+    }
+
+    alert(`${order.image_urls.length}개의 이미지 다운로드가 완료되었습니다.`)
+  }
+
+  const viewOrderDetail = (order) => {
+    setSelectedOrder(order)
+    setShowDetailModal(true)
   }
 
   const getStatusBadge = (status) => {
@@ -265,98 +307,140 @@ const OnlineOrders = () => {
 
       {/* 주문 목록 */}
       <div className="bg-white shadow rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">주문번호</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">주문일시</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">사원명</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">고객명</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">상품명</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">수량</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">금액</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">작업</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {orders.length === 0 ? (
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
               <tr>
-                <td colSpan="9" className="px-6 py-8 text-center text-gray-500">
-                  주문 내역이 없습니다.
-                </td>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">주문번호</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">주문일시</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">사원명</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">상호명</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">고객명</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">상품명</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">수량</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">금액</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">사진</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">작업</th>
               </tr>
-            ) : (
-              orders.map((order) => {
-                const timeInfo = getTimeInfo(order.created_at)
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {orders.length === 0 ? (
+                <tr>
+                  <td colSpan="11" className="px-6 py-8 text-center text-gray-500">
+                    주문 내역이 없습니다.
+                  </td>
+                </tr>
+              ) : (
+                orders.map((order) => {
+                  const timeInfo = getTimeInfo(order.created_at)
+                  const imageCount = order.image_urls?.length || 0
 
-                return (
-                  <tr key={order.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      #{order.id}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <div>
-                        {format(new Date(order.created_at), 'yyyy-MM-dd HH:mm')}
-                      </div>
-                      <div className={`text-xs ${timeInfo.isExpired && order.status === 'pending_payment' ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
-                        {timeInfo.timeAgo}
-                        {timeInfo.isExpired && order.status === 'pending_payment' && (
-                          <span className="ml-1">⚠️ 24시간 경과</span>
+                  return (
+                    <tr key={order.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        #{order.id}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <div>
+                          {format(new Date(order.created_at), 'yyyy-MM-dd HH:mm')}
+                        </div>
+                        <div className={`text-xs ${timeInfo.isExpired && order.status === 'pending_payment' ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
+                          {timeInfo.timeAgo}
+                          {timeInfo.isExpired && order.status === 'pending_payment' && (
+                            <span className="ml-1">⚠️ 24시간 경과</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {order.employees?.name || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {order.business_name || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{order.customer_name}</div>
+                        <div className="text-xs text-gray-500">{order.customer_phone}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {order.products?.name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {order.quantity}개
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                        {formatCurrency(order.total_amount)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {imageCount > 0 ? (
+                          <div className="flex items-center gap-1">
+                            <ImageIcon className="h-4 w-4 text-blue-600" />
+                            <span className="text-gray-900 font-medium">{imageCount}개</span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">-</span>
                         )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {order.employees?.name || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{order.customer_name}</div>
-                      <div className="text-xs text-gray-500">{order.customer_phone}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {order.products?.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {order.quantity}개
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                      {formatCurrency(order.total_amount)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(order.status)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {order.status === 'pending_payment' && (
-                        <div className="flex gap-2">
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {getStatusBadge(order.status)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <div className="flex flex-col gap-2">
+                          {/* 정보 보기 버튼 */}
                           <button
-                            onClick={() => confirmPayment(order.id)}
-                            className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-xs font-medium"
+                            onClick={() => viewOrderDetail(order)}
+                            className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs font-medium flex items-center gap-1 justify-center"
                           >
-                            입금 확인
+                            <Eye className="h-3 w-3" />
+                            정보보기
                           </button>
-                          <button
-                            onClick={() => cancelOrder(order.id)}
-                            className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-xs font-medium"
-                          >
-                            주문 취소
-                          </button>
+
+                          {/* 사진 다운로드 버튼 */}
+                          {imageCount > 0 && (
+                            <button
+                              onClick={() => downloadAllImages(order)}
+                              className="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 text-xs font-medium flex items-center gap-1 justify-center"
+                            >
+                              <Download className="h-3 w-3" />
+                              사진({imageCount})
+                            </button>
+                          )}
+
+                          {/* 입금 확인 / 취소 버튼 */}
+                          {order.status === 'pending_payment' && (
+                            <>
+                              <button
+                                onClick={() => confirmPayment(order.id)}
+                                className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-xs font-medium"
+                              >
+                                입금 확인
+                              </button>
+                              <button
+                                onClick={() => cancelOrder(order.id)}
+                                className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-xs font-medium"
+                              >
+                                주문 취소
+                              </button>
+                            </>
+                          )}
+
+                          {order.status === 'completed' && order.payment_date && (
+                            <div className="text-xs text-gray-500">
+                              입금일: {format(new Date(order.payment_date), 'yyyy-MM-dd')}
+                            </div>
+                          )}
+                          {order.status === 'cancelled' && (
+                            <span className="text-xs text-gray-500">취소됨</span>
+                          )}
                         </div>
-                      )}
-                      {order.status === 'completed' && order.payment_date && (
-                        <div className="text-xs text-gray-500">
-                          입금일: {format(new Date(order.payment_date), 'yyyy-MM-dd')}
-                        </div>
-                      )}
-                      {order.status === 'cancelled' && (
-                        <span className="text-xs text-gray-500">취소됨</span>
-                      )}
-                    </td>
-                  </tr>
-                )
-              })
-            )}
-          </tbody>
-        </table>
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* 안내 사항 */}
@@ -367,8 +451,162 @@ const OnlineOrders = () => {
           <li>• 실제 입금 확인 후 '입금 확인' 버튼을 클릭하여 주문을 완료 처리하세요</li>
           <li>• 24시간 이내 미입금 시 '주문 취소' 버튼으로 주문을 취소할 수 있습니다</li>
           <li>• '입금 완료' 상태의 주문만 매출 통계에 반영됩니다</li>
+          <li>• '정보보기' 버튼으로 상호명, 네이버 플레이스 주소 등 상세 정보를 확인할 수 있습니다</li>
+          <li>• '사진' 버튼으로 고객이 업로드한 모든 이미지를 다운로드할 수 있습니다</li>
         </ul>
       </div>
+
+      {/* 주문 상세 정보 모달 */}
+      {showDetailModal && selectedOrder && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowDetailModal(false)}
+        >
+          <div
+            className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900">주문 상세 정보</h2>
+              <button
+                onClick={() => setShowDetailModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <XCircle className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* 주문 기본 정보 */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">주문 정보</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">주문번호</span>
+                    <span className="text-sm font-medium text-gray-900">#{selectedOrder.id}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">주문일시</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {format(new Date(selectedOrder.created_at), 'yyyy-MM-dd HH:mm:ss')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">담당 사원</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {selectedOrder.employees?.name || '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">상품명</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {selectedOrder.products?.name}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">수량</span>
+                    <span className="text-sm font-medium text-gray-900">{selectedOrder.quantity}개</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">결제금액</span>
+                    <span className="text-sm font-bold text-blue-600">
+                      {formatCurrency(selectedOrder.total_amount)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">주문상태</span>
+                    <span>{getStatusBadge(selectedOrder.status)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 고객 정보 */}
+              <div className="bg-blue-50 rounded-lg p-4">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">고객 정보</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">상호명</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {selectedOrder.business_name || '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">이름</span>
+                    <span className="text-sm font-medium text-gray-900">{selectedOrder.customer_name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">전화번호</span>
+                    <span className="text-sm font-medium text-gray-900">{selectedOrder.customer_phone}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">이메일</span>
+                    <span className="text-sm font-medium text-gray-900">{selectedOrder.customer_email}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-sm text-gray-600">네이버 플레이스 주소</span>
+                    {selectedOrder.naver_place_address ? (
+                      <a
+                        href={selectedOrder.naver_place_address}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm font-medium text-blue-600 hover:underline break-all"
+                      >
+                        {selectedOrder.naver_place_address}
+                      </a>
+                    ) : (
+                      <span className="text-sm font-medium text-gray-900">-</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* 업로드된 이미지 */}
+              {selectedOrder.image_urls && selectedOrder.image_urls.length > 0 && (
+                <div className="bg-purple-50 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-gray-700">
+                      업로드된 사진 ({selectedOrder.image_urls.length}개)
+                    </h3>
+                    <button
+                      onClick={() => downloadAllImages(selectedOrder)}
+                      className="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 text-xs font-medium flex items-center gap-1"
+                    >
+                      <Download className="h-3 w-3" />
+                      전체 다운로드
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {selectedOrder.image_urls.map((url, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={url}
+                          alt={`주문 이미지 ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg border border-gray-200"
+                        />
+                        <button
+                          onClick={() => downloadImage(url, `order_${selectedOrder.id}_image_${index + 1}.jpg`)}
+                          className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 flex items-center justify-center rounded-lg transition-all"
+                        >
+                          <Download className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4">
+              <button
+                onClick={() => setShowDetailModal(false)}
+                className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-medium"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

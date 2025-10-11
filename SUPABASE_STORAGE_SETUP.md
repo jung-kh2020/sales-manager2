@@ -27,22 +27,30 @@
 
 ### 업로드 정책 (모든 사용자 허용)
 
+**UI 설정:**
+- Policy name: `Allow public uploads`
+- **Allowed operation**: `INSERT` ✅ (체크박스 선택)
+- Target roles: `public`
+- WITH CHECK expression: `bucket_id = 'order-images'`
+
+**SQL:**
 ```sql
--- 정책 이름: Allow public uploads
--- Target roles: public
--- Policy definition:
 CREATE POLICY "Allow public uploads"
 ON storage.objects FOR INSERT
 TO public
 WITH CHECK (bucket_id = 'order-images');
 ```
 
-### 업로드 정책 (인증된 사용자만 허용)
+### 업로드 정책 (인증된 사용자만 허용) - 권장
 
+**UI 설정:**
+- Policy name: `Allow authenticated uploads`
+- **Allowed operation**: `INSERT` ✅ (체크박스 선택)
+- Target roles: `authenticated`
+- WITH CHECK expression: `bucket_id = 'order-images'`
+
+**SQL:**
 ```sql
--- 정책 이름: Allow authenticated uploads
--- Target roles: authenticated
--- Policy definition:
 CREATE POLICY "Allow authenticated uploads"
 ON storage.objects FOR INSERT
 TO authenticated
@@ -51,15 +59,27 @@ WITH CHECK (bucket_id = 'order-images');
 
 ### 읽기 정책 (이미 public 버킷이면 자동 적용됨)
 
+**UI 설정:**
+- Policy name: `Allow public read`
+- **Allowed operation**: `SELECT` ✅ (체크박스 선택)
+- Target roles: `public`
+- USING expression: `bucket_id = 'order-images'`
+
+**SQL:**
 ```sql
--- 정책 이름: Allow public read
--- Target roles: public
--- Policy definition:
 CREATE POLICY "Allow public read"
 ON storage.objects FOR SELECT
 TO public
 USING (bucket_id = 'order-images');
 ```
+
+> **참고**: Supabase UI에서 정책을 생성할 때, Allowed operation에는 여러 옵션이 있습니다:
+> - `SELECT` - 읽기 (다운로드)
+> - `INSERT` - 생성 (업로드)
+> - `UPDATE` - 수정
+> - `DELETE` - 삭제
+>
+> 각 작업에 맞는 operation을 선택하세요.
 
 ## 4단계: 데이터베이스 마이그레이션 실행
 

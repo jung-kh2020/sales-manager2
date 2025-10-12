@@ -8,12 +8,13 @@ const OnlineOrders = () => {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('all') // 'all', 'pending_payment', 'completed', 'cancelled'
+  const [paymentTypeFilter, setPaymentTypeFilter] = useState('all') // 'all', 'card', 'bank_transfer'
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
 
   useEffect(() => {
     fetchOrders()
-  }, [statusFilter])
+  }, [statusFilter, paymentTypeFilter])
 
   const fetchOrders = async () => {
     setLoading(true)
@@ -29,6 +30,10 @@ const OnlineOrders = () => {
 
       if (statusFilter !== 'all') {
         query = query.eq('status', statusFilter)
+      }
+
+      if (paymentTypeFilter !== 'all') {
+        query = query.eq('payment_type', paymentTypeFilter)
       }
 
       const { data, error } = await query
@@ -189,9 +194,12 @@ const OnlineOrders = () => {
 
   const stats = {
     total: orders.length,
+    card: orders.filter(o => o.payment_type === 'card' && o.status === 'completed').length,
+    bankTransfer: orders.filter(o => o.payment_type === 'bank_transfer').length,
+    cancelled: orders.filter(o => o.status === 'cancelled').length,
+    // 추가 통계 (필터링용)
     pending: orders.filter(o => o.status === 'pending_payment').length,
-    completed: orders.filter(o => o.status === 'completed').length,
-    cancelled: orders.filter(o => o.status === 'cancelled').length
+    completed: orders.filter(o => o.status === 'completed').length
   }
 
   if (loading) {
@@ -221,11 +229,12 @@ const OnlineOrders = () => {
         <div className="bg-white p-6 rounded-xl shadow-card border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 mb-1">입금 대기</p>
-              <p className="text-2xl font-bold text-yellow-600">{stats.pending}건</p>
+              <p className="text-sm text-gray-500 mb-1">💳 카드결제</p>
+              <p className="text-2xl font-bold text-blue-600">{stats.card}건</p>
+              <p className="text-xs text-gray-500 mt-1">완료된 주문</p>
             </div>
-            <div className="p-3 bg-yellow-100 rounded-lg">
-              <Clock className="h-6 w-6 text-yellow-600" />
+            <div className="p-3 bg-blue-100 rounded-lg">
+              <CheckCircle className="h-6 w-6 text-blue-600" />
             </div>
           </div>
         </div>
@@ -233,11 +242,12 @@ const OnlineOrders = () => {
         <div className="bg-white p-6 rounded-xl shadow-card border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 mb-1">입금 완료</p>
-              <p className="text-2xl font-bold text-green-600">{stats.completed}건</p>
+              <p className="text-sm text-gray-500 mb-1">🏦 계좌이체</p>
+              <p className="text-2xl font-bold text-green-600">{stats.bankTransfer}건</p>
+              <p className="text-xs text-gray-500 mt-1">대기 + 완료</p>
             </div>
             <div className="p-3 bg-green-100 rounded-lg">
-              <CheckCircle className="h-6 w-6 text-green-600" />
+              <Clock className="h-6 w-6 text-green-600" />
             </div>
           </div>
         </div>
@@ -257,51 +267,94 @@ const OnlineOrders = () => {
 
       {/* 필터 */}
       <div className="bg-white p-4 rounded-lg shadow mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          <Filter className="h-5 w-5 text-gray-500" />
-          <h3 className="text-sm font-medium text-gray-700">주문 상태 필터</h3>
+        {/* 결제 방식 필터 */}
+        <div className="mb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Filter className="h-5 w-5 text-gray-500" />
+            <h3 className="text-sm font-medium text-gray-700">결제 방식</h3>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPaymentTypeFilter('all')}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                paymentTypeFilter === 'all'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              전체
+            </button>
+            <button
+              onClick={() => setPaymentTypeFilter('card')}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                paymentTypeFilter === 'card'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              💳 카드결제
+            </button>
+            <button
+              onClick={() => setPaymentTypeFilter('bank_transfer')}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                paymentTypeFilter === 'bank_transfer'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              🏦 계좌이체
+            </button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setStatusFilter('all')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-              statusFilter === 'all'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            전체 ({stats.total})
-          </button>
-          <button
-            onClick={() => setStatusFilter('pending_payment')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-              statusFilter === 'pending_payment'
-                ? 'bg-yellow-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            입금 대기 ({stats.pending})
-          </button>
-          <button
-            onClick={() => setStatusFilter('completed')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-              statusFilter === 'completed'
-                ? 'bg-green-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            입금 완료 ({stats.completed})
-          </button>
-          <button
-            onClick={() => setStatusFilter('cancelled')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-              statusFilter === 'cancelled'
-                ? 'bg-gray-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            주문 취소 ({stats.cancelled})
-          </button>
+
+        {/* 주문 상태 필터 */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Filter className="h-5 w-5 text-gray-500" />
+            <h3 className="text-sm font-medium text-gray-700">주문 상태</h3>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                statusFilter === 'all'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              전체 ({stats.total})
+            </button>
+            <button
+              onClick={() => setStatusFilter('pending_payment')}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                statusFilter === 'pending_payment'
+                  ? 'bg-yellow-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              입금 대기 ({stats.pending})
+            </button>
+            <button
+              onClick={() => setStatusFilter('completed')}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                statusFilter === 'completed'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              완료 ({stats.completed})
+            </button>
+            <button
+              onClick={() => setStatusFilter('cancelled')}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                statusFilter === 'cancelled'
+                  ? 'bg-gray-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              취소 ({stats.cancelled})
+            </button>
+          </div>
         </div>
       </div>
 
@@ -314,6 +367,7 @@ const OnlineOrders = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">주문번호</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">주문일시</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">사원명</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">결제방식</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">상호명</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">고객명</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">상품명</th>
@@ -327,7 +381,7 @@ const OnlineOrders = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {orders.length === 0 ? (
                 <tr>
-                  <td colSpan="11" className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan="12" className="px-6 py-8 text-center text-gray-500">
                     주문 내역이 없습니다.
                   </td>
                 </tr>
@@ -354,6 +408,19 @@ const OnlineOrders = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {order.employees?.name || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {order.payment_type === 'card' ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                            💳 카드결제
+                          </span>
+                        ) : order.payment_type === 'bank_transfer' ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 border border-green-200">
+                            🏦 계좌이체
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {order.business_name || '-'}
@@ -406,8 +473,8 @@ const OnlineOrders = () => {
                             </button>
                           )}
 
-                          {/* 입금 확인 / 취소 버튼 */}
-                          {order.status === 'pending_payment' && (
+                          {/* 입금 확인 / 취소 버튼 (계좌이체만) */}
+                          {order.status === 'pending_payment' && order.payment_type === 'bank_transfer' && (
                             <>
                               <button
                                 onClick={() => confirmPayment(order.id)}
@@ -424,9 +491,22 @@ const OnlineOrders = () => {
                             </>
                           )}
 
+                          {/* 취소 버튼만 (카드결제 미완료) */}
+                          {order.status === 'pending_payment' && order.payment_type === 'card' && (
+                            <>
+                              <div className="text-xs text-red-600 font-medium mb-1">결제 미완료</div>
+                              <button
+                                onClick={() => cancelOrder(order.id)}
+                                className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-xs font-medium"
+                              >
+                                주문 취소
+                              </button>
+                            </>
+                          )}
+
                           {order.status === 'completed' && order.payment_date && (
                             <div className="text-xs text-gray-500">
-                              입금일: {format(new Date(order.payment_date), 'yyyy-MM-dd')}
+                              {order.payment_type === 'card' ? '결제일' : '입금일'}: {format(new Date(order.payment_date), 'yyyy-MM-dd')}
                             </div>
                           )}
                           {order.status === 'cancelled' && (
@@ -445,15 +525,36 @@ const OnlineOrders = () => {
 
       {/* 안내 사항 */}
       <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h4 className="text-sm font-medium text-blue-900 mb-2">온라인 주문 처리 안내</h4>
-        <ul className="text-sm text-blue-800 space-y-1">
-          <li>• 고객이 계좌이체를 선택하면 '입금 대기' 상태로 주문이 생성됩니다</li>
-          <li>• 실제 입금 확인 후 '입금 확인' 버튼을 클릭하여 주문을 완료 처리하세요</li>
-          <li>• 24시간 이내 미입금 시 '주문 취소' 버튼으로 주문을 취소할 수 있습니다</li>
-          <li>• '입금 완료' 상태의 주문만 매출 통계에 반영됩니다</li>
-          <li>• '정보보기' 버튼으로 상호명, 네이버 플레이스 주소 등 상세 정보를 확인할 수 있습니다</li>
-          <li>• '사진' 버튼으로 고객이 업로드한 모든 이미지를 다운로드할 수 있습니다</li>
-        </ul>
+        <h4 className="text-sm font-medium text-blue-900 mb-3">온라인 주문 처리 안내</h4>
+
+        <div className="mb-3">
+          <h5 className="text-sm font-semibold text-blue-900 mb-1">💳 카드결제</h5>
+          <ul className="text-sm text-blue-800 space-y-1 ml-4">
+            <li>• 토스페이먼츠를 통해 자동으로 결제 승인됩니다</li>
+            <li>• 결제 완료 시 자동으로 '완료' 상태로 처리됩니다</li>
+            <li>• '입금 대기' 상태로 남아있는 경우는 결제 실패/취소된 주문입니다</li>
+            <li>• 결제 미완료 주문은 '주문 취소' 버튼으로 정리할 수 있습니다</li>
+          </ul>
+        </div>
+
+        <div className="mb-3">
+          <h5 className="text-sm font-semibold text-blue-900 mb-1">🏦 계좌이체</h5>
+          <ul className="text-sm text-blue-800 space-y-1 ml-4">
+            <li>• 고객 주문 시 '입금 대기' 상태로 생성됩니다</li>
+            <li>• 실제 입금 확인 후 '입금 확인' 버튼을 클릭하여 완료 처리하세요</li>
+            <li>• 24시간 이내 미입금 시 '주문 취소' 버튼으로 취소할 수 있습니다</li>
+            <li>• 24시간 경과 주문은 ⚠️ 아이콘으로 표시됩니다</li>
+          </ul>
+        </div>
+
+        <div>
+          <h5 className="text-sm font-semibold text-blue-900 mb-1">기타</h5>
+          <ul className="text-sm text-blue-800 space-y-1 ml-4">
+            <li>• '완료' 상태의 주문만 매출 통계에 반영됩니다</li>
+            <li>• '정보보기' 버튼으로 상세 정보를 확인할 수 있습니다</li>
+            <li>• '사진' 버튼으로 고객이 업로드한 이미지를 다운로드할 수 있습니다</li>
+          </ul>
+        </div>
       </div>
 
       {/* 주문 상세 정보 모달 */}

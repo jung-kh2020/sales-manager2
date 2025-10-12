@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../services/supabase'
 import { ShoppingCart, CreditCard, Package, Star, CheckCircle, Building2, X, Copy, AlertTriangle, User, Upload, Image as ImageIcon } from 'lucide-react'
 
 const ProductCatalog = () => {
   const { id } = useParams()
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const [product, setProduct] = useState(null)
   const [employee, setEmployee] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -158,16 +159,62 @@ const ProductCatalog = () => {
     }
   }
 
-  const handleCardPayment = () => {
+  const handleCardPayment = async () => {
+    // 1. 필수 정보 확인
     if (!customerInfo.businessName || !customerInfo.name || !customerInfo.email || !customerInfo.phone || !customerInfo.naverPlaceAddress) {
       alert('필수 정보를 모두 입력해주세요.')
       return
     }
+
     if (uploadedImages.length === 0) {
       alert('최소 1개의 사진을 업로드해주세요.')
       return
     }
-    alert('카드결제 서비스 준비중입니다.\n\n빠른 시일 내에 오픈 예정입니다. 😊')
+
+    try {
+      // 2. 주문 생성 (결제 전 상태)
+      const orderData = {
+        product_id: product.id,
+        employee_id: employee?.id || null,
+        business_name: customerInfo.businessName,
+        customer_name: customerInfo.name,
+        customer_email: customerInfo.email,
+        customer_phone: customerInfo.phone,
+        naver_place_address: customerInfo.naverPlaceAddress,
+        image_urls: uploadedImages,
+        quantity: quantity,
+        sale_price: product.price, // 판매가격 (개당)
+        sale_cost: product.cost || 0, // 원가 (개당)
+        total_amount: calculateTotal(product.price * quantity),
+        status: 'pending_payment', // 결제 대기
+        payment_type: 'card', // 카드결제 (토스페이먼츠)
+      }
+
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert([orderData])
+        .select()
+        .single()
+
+      if (orderError) throw orderError
+
+      // 3. 결제 페이지로 이동 (주문 정보 전달)
+      navigate('/payment', {
+        state: {
+          orderData: {
+            orderId: `ORDER-${order.id}-${Date.now()}`, // Toss 형식: 영문자 포함, 6자 이상, 타임스탬프로 고유성 보장
+            orderName: `${product.name} ${quantity}개`,
+            amount: calculateTotal(product.price * quantity),
+            customerName: customerInfo.name,
+            customerEmail: customerInfo.email,
+            customerPhone: customerInfo.phone,
+          }
+        }
+      })
+    } catch (error) {
+      console.error('Order creation error:', error)
+      alert('주문 생성 중 오류가 발생했습니다: ' + error.message)
+    }
   }
 
   const handleBankTransfer = async () => {
@@ -194,8 +241,11 @@ const ProductCatalog = () => {
         naver_place_address: customerInfo.naverPlaceAddress,
         image_urls: uploadedImages, // JSON 배열로 저장
         quantity: quantity,
+        sale_price: product.price, // 판매가격 (개당)
+        sale_cost: product.cost || 0, // 원가 (개당)
         total_amount: product.price * quantity,
         status: 'pending_payment', // 입금 대기
+        payment_type: 'bank_transfer', // 계좌이체
       }
 
       const { data: order, error: orderError } = await supabase

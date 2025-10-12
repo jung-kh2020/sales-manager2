@@ -131,9 +131,9 @@ const EmployeeDashboard = () => {
       const totalRate = baseRate + bonusRate
       const monthlyCommission = Math.round(totalSales * totalRate)
 
-      // 통합 주문 내역 생성 (온라인 + 오프라인)
+      // 통합 주문 내역 생성 (완료된 온라인 주문 + 모든 오프라인 판매)
       const combinedOrders = [
-        ...ordersData.map(order => ({
+        ...completedOrders.map(order => ({
           id: `order-${order.id}`,
           type: 'online',
           date: order.created_at,

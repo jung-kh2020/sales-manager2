@@ -196,7 +196,15 @@ const ProductCatalog = () => {
         .select()
         .single()
 
-      if (orderError) throw orderError
+      if (orderError) {
+        console.error('Supabase order error details:', {
+          message: orderError.message,
+          details: orderError.details,
+          hint: orderError.hint,
+          code: orderError.code
+        })
+        throw orderError
+      }
 
       // 3. 결제 페이지로 이동 (주문 정보 전달)
       navigate('/payment', {

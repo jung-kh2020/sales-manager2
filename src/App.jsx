@@ -1,4 +1,4 @@
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Layout from './components/Layout'
 import Login from './components/Login'
@@ -12,14 +12,12 @@ import Statistics from './pages/Statistics'
 import Products from './pages/Products'
 import ProductCatalog from './pages/ProductCatalog'
 import OrderSuccess from './pages/OrderSuccess'
+import PaymentPage from './pages/PaymentPage'
+import PaymentSuccess from './pages/PaymentSuccess'
+import PaymentFail from './pages/PaymentFail'
 
 const AppRoutes = () => {
   const { user, loading } = useAuth()
-  const location = useLocation()
-
-  // 공개 경로 (로그인 없이 접근 가능)
-  const publicPaths = ['/product/', '/order-success/']
-  const isPublicPath = publicPaths.some(path => location.pathname.startsWith(path))
 
   if (loading) {
     return (
@@ -29,39 +27,39 @@ const AppRoutes = () => {
     )
   }
 
-  // 공개 페이지는 로그인 없이 접근 가능
-  if (isPublicPath) {
-    return (
-      <Routes>
-        <Route path="/product/:id" element={<ProductCatalog />} />
-        <Route path="/order-success/:id" element={<OrderSuccess />} />
-      </Routes>
-    )
-  }
-
-  // 보호된 페이지는 로그인 필요
-  if (!user) {
-    return <Login />
-  }
-
+  // Single Routes block - fixes "No routes matched" error
   return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={
-          user.role === 'admin' ? <Dashboard /> : <EmployeeDashboard />
-        } />
-        {user.role === 'admin' && (
-          <>
-            <Route path="/employees" element={<Employees />} />
-            <Route path="/sales" element={<Sales />} />
-            <Route path="/online-orders" element={<OnlineOrders />} />
-            <Route path="/commissions" element={<Commissions />} />
-            <Route path="/statistics" element={<Statistics />} />
-            <Route path="/products" element={<Products />} />
-          </>
-        )}
-      </Routes>
-    </Layout>
+    <Routes>
+      {/* Public routes - no auth required, no layout */}
+      <Route path="/product/:id" element={<ProductCatalog />} />
+      <Route path="/order-success/:id" element={<OrderSuccess />} />
+      <Route path="/payment" element={<PaymentPage />} />
+      <Route path="/payment/success" element={<PaymentSuccess />} />
+      <Route path="/payment/fail" element={<PaymentFail />} />
+
+      {/* Protected routes - auth required, with layout */}
+      {!user ? (
+        <Route path="*" element={<Login />} />
+      ) : (
+        <>
+          <Route path="/" element={
+            <Layout>
+              {user.role === 'admin' ? <Dashboard /> : <EmployeeDashboard />}
+            </Layout>
+          } />
+          {user.role === 'admin' && (
+            <>
+              <Route path="/employees" element={<Layout><Employees /></Layout>} />
+              <Route path="/sales" element={<Layout><Sales /></Layout>} />
+              <Route path="/online-orders" element={<Layout><OnlineOrders /></Layout>} />
+              <Route path="/commissions" element={<Layout><Commissions /></Layout>} />
+              <Route path="/statistics" element={<Layout><Statistics /></Layout>} />
+              <Route path="/products" element={<Layout><Products /></Layout>} />
+            </>
+          )}
+        </>
+      )}
+    </Routes>
   )
 }
 

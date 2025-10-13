@@ -38,7 +38,7 @@ const PaymentSuccess = () => {
         // 1단계: 먼저 주문 정보 조회 (중복 요청 방지)
         const { data: existingOrder, error: fetchError } = await supabase
           .from('orders')
-          .select('*, products(name, price)')
+          .select('*, products(name, price), employees(employee_code)')
           .eq('id', orderIdNumber)
           .single()
 
@@ -67,7 +67,7 @@ const PaymentSuccess = () => {
           await new Promise(resolve => setTimeout(resolve, 1000))
           const { data: reCheckedOrder } = await supabase
             .from('orders')
-            .select('*, products(name, price)')
+            .select('*, products(name, price), employees(employee_code)')
             .eq('id', orderIdNumber)
             .single()
 
@@ -124,7 +124,7 @@ const PaymentSuccess = () => {
         // 업데이트된 주문 정보 다시 조회
         const { data: updatedOrder, error: refetchError } = await supabase
           .from('orders')
-          .select('*, products(name, price)')
+          .select('*, products(name, price), employees(employee_code)')
           .eq('id', orderIdNumber)
           .single()
 
@@ -293,10 +293,25 @@ const PaymentSuccess = () => {
             영수증 출력
           </button>
           <button
-            onClick={() => navigate('/')}
+            onClick={() => {
+              // 상품 페이지 URL 생성
+              const productId = orderInfo?.product_id
+              const employeeCode = orderInfo?.employees?.employee_code
+
+              if (productId && employeeCode) {
+                // 주문했던 상품 페이지로 돌아가기
+                window.location.href = `/product/${productId}?ref=${employeeCode}`
+              } else if (productId) {
+                // employee 정보가 없으면 ref 없이
+                window.location.href = `/product/${productId}`
+              } else {
+                // 상품 정보가 없으면 홈으로
+                window.location.href = '/'
+              }
+            }}
             className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
           >
-            홈으로 이동
+            닫기
           </button>
         </div>
       </div>

@@ -44,6 +44,7 @@ export const AuthProvider = ({ children }) => {
             id,
             name,
             employee_code,
+            referral_code,
             phone,
             email
           )
@@ -67,7 +68,7 @@ export const AuthProvider = ({ children }) => {
         if (userData.employee_id) {
           const { data: empData, error: empError } = await supabase
             .from('employees')
-            .select('id, name, employee_code, phone, email')
+            .select('id, name, employee_code, referral_code, phone, email')
             .eq('id', userData.employee_id)
             .single()
 

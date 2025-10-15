@@ -183,7 +183,15 @@ const EmployeeDashboard = () => {
 
   const generateProductUrl = (product) => {
     // slug와 referral_code 사용 (보안 강화)
-    return `${window.location.origin}/product/${product.slug}?ref=${user.employee.referral_code}`
+    const referralCode = user?.employee?.referral_code
+
+    if (!referralCode) {
+      console.error('⚠️ referral_code is missing for employee:', user?.employee)
+      console.error('Please run the database migration: supabase_migration_uuid.sql')
+      return `${window.location.origin}/product/${product.slug}?ref=MISSING`
+    }
+
+    return `${window.location.origin}/product/${product.slug}?ref=${referralCode}`
   }
 
   const copyToClipboard = (url) => {

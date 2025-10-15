@@ -83,8 +83,8 @@ const Layout = ({ children }) => {
         {/* Logo/Header */}
         <div className="p-4 border-b border-gray-200">
           <div>
-            <h1 className="text-lg font-bold text-gray-900">리뷰999+</h1>
-            <p className="text-xs text-gray-500">관리시스템</p>
+            <h1 className="text-xl font-bold text-gray-900">리뷰999+</h1>
+            <p className="text-sm text-gray-500">관리시스템</p>
           </div>
         </div>
 

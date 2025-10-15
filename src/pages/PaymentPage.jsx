@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-// Dynamic import to avoid Vercel build issues
-// import { loadTossPayments } from '@tosspayments/payment-sdk'
 import { Package, CreditCard, Building2, Smartphone } from 'lucide-react'
 
 const PaymentPage = () => {
@@ -23,11 +21,35 @@ const PaymentPage = () => {
       return
     }
 
+    // Toss Payments CDN 스크립트 로드 (공식 권장 방식)
+    const loadTossPaymentsScript = () => {
+      return new Promise((resolve, reject) => {
+        // 이미 로드되어 있는지 확인
+        if (window.TossPayments) {
+          resolve(window.TossPayments)
+          return
+        }
+
+        // 스크립트 태그 생성
+        const script = document.createElement('script')
+        script.src = 'https://js.tosspayments.com/v1/payment'
+        script.async = true
+        script.onload = () => {
+          if (window.TossPayments) {
+            resolve(window.TossPayments)
+          } else {
+            reject(new Error('TossPayments 객체를 찾을 수 없습니다.'))
+          }
+        }
+        script.onerror = () => reject(new Error('TossPayments 스크립트 로드 실패'))
+        document.head.appendChild(script)
+      })
+    }
+
     const initializeTossPayments = async () => {
       try {
-        // Dynamic import to avoid build-time resolution issues
-        const { loadTossPayments } = await import('@tosspayments/payment-sdk')
-        const tossPaymentsInstance = await loadTossPayments(clientKey)
+        const TossPayments = await loadTossPaymentsScript()
+        const tossPaymentsInstance = TossPayments(clientKey)
         setTossPayments(tossPaymentsInstance)
         setLoading(false)
       } catch (err) {

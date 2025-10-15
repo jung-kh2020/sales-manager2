@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom'
+import { lazy, Suspense } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Layout from './components/Layout'
 import Login from './components/Login'
@@ -12,9 +13,10 @@ import Statistics from './pages/Statistics'
 import Products from './pages/Products'
 import ProductCatalog from './pages/ProductCatalog'
 import OrderSuccess from './pages/OrderSuccess'
-import PaymentPage from './pages/PaymentPage'
-import PaymentSuccess from './pages/PaymentSuccess'
-import PaymentFail from './pages/PaymentFail'
+// Lazy load payment-related pages to avoid build-time resolution of @tosspayments/payment-sdk
+const PaymentPage = lazy(() => import('./pages/PaymentPage'))
+const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'))
+const PaymentFail = lazy(() => import('./pages/PaymentFail'))
 
 const AppRoutes = () => {
   const { user, loading } = useAuth()
@@ -27,15 +29,37 @@ const AppRoutes = () => {
     )
   }
 
+  // Loading fallback for lazy-loaded pages
+  const LoadingFallback = () => (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-500">로딩 중...</p>
+      </div>
+    </div>
+  )
+
   // Single Routes block - fixes "No routes matched" error
   return (
     <Routes>
       {/* Public routes - no auth required, no layout - MUST be defined first */}
       <Route path="/product/:slug" element={<ProductCatalog />} />
       <Route path="/order-success/:id" element={<OrderSuccess />} />
-      <Route path="/payment" element={<PaymentPage />} />
-      <Route path="/payment/success" element={<PaymentSuccess />} />
-      <Route path="/payment/fail" element={<PaymentFail />} />
+      <Route path="/payment" element={
+        <Suspense fallback={<LoadingFallback />}>
+          <PaymentPage />
+        </Suspense>
+      } />
+      <Route path="/payment/success" element={
+        <Suspense fallback={<LoadingFallback />}>
+          <PaymentSuccess />
+        </Suspense>
+      } />
+      <Route path="/payment/fail" element={
+        <Suspense fallback={<LoadingFallback />}>
+          <PaymentFail />
+        </Suspense>
+      } />
 
       {/* Protected routes - auth required, with layout */}
       {user ? (

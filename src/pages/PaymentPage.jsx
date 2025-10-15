@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { loadTossPayments } from '@tosspayments/payment-sdk'
+// Dynamic import to avoid Vercel build issues
+// import { loadTossPayments } from '@tosspayments/payment-sdk'
 import { Package, CreditCard, Building2, Smartphone } from 'lucide-react'
 
 const PaymentPage = () => {
@@ -24,6 +25,8 @@ const PaymentPage = () => {
 
     const initializeTossPayments = async () => {
       try {
+        // Dynamic import to avoid build-time resolution issues
+        const { loadTossPayments } = await import('@tosspayments/payment-sdk')
         const tossPaymentsInstance = await loadTossPayments(clientKey)
         setTossPayments(tossPaymentsInstance)
         setLoading(false)

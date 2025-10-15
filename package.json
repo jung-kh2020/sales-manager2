@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "description": "영업사원 관리 시스템",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",

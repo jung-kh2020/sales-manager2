@@ -5,7 +5,7 @@ import { supabase } from '../services/supabase'
 import { ShoppingCart, CreditCard, Package, Star, CheckCircle, Building2, X, Copy, AlertTriangle, User, Upload, Image as ImageIcon } from 'lucide-react'
 
 const ProductCatalog = () => {
-  const { id } = useParams()
+  const { slug } = useParams() // Changed from 'id' to 'slug'
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const [product, setProduct] = useState(null)
@@ -27,32 +27,31 @@ const ProductCatalog = () => {
   const [currentOrder, setCurrentOrder] = useState(null)
 
   useEffect(() => {
-    const productId = window.location.pathname.split('/')[2]
-    if (productId) {
-      fetchProduct(productId)
+    if (slug) {
+      fetchProduct(slug)
     }
-  }, [])
+  }, [slug])
 
-  const fetchProduct = async (productId) => {
+  const fetchProduct = async (productSlug) => {
     try {
-      // 상품 정보 가져오기
+      // 상품 정보 가져오기 (slug 기반 조회)
       const { data: productData, error: productError } = await supabase
         .from('products')
         .select('*')
-        .eq('id', productId)
+        .eq('slug', productSlug)
         .single()
 
       if (productError) throw productError
 
       setProduct(productData)
 
-      // 판매자 정보 가져오기 (URL 파라미터에서)
+      // 판매자 정보 가져오기 (referral_code 기반 조회)
       const refCode = searchParams.get('ref')
       if (refCode) {
         const { data: employeeData, error: employeeError } = await supabase
           .from('employees')
           .select('*')
-          .eq('employee_code', refCode)
+          .eq('referral_code', refCode) // Changed from 'employee_code' to 'referral_code'
           .single()
 
         if (!employeeError && employeeData) {

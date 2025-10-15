@@ -38,7 +38,7 @@ const PaymentSuccess = () => {
         // 1단계: 먼저 주문 정보 조회 (중복 요청 방지)
         const { data: existingOrder, error: fetchError } = await supabase
           .from('orders')
-          .select('*, products(name, price), employees(employee_code)')
+          .select('*, products(name, price, slug), employees(referral_code)')
           .eq('id', orderIdNumber)
           .single()
 
@@ -67,7 +67,7 @@ const PaymentSuccess = () => {
           await new Promise(resolve => setTimeout(resolve, 1000))
           const { data: reCheckedOrder } = await supabase
             .from('orders')
-            .select('*, products(name, price), employees(employee_code)')
+            .select('*, products(name, price, slug), employees(referral_code)')
             .eq('id', orderIdNumber)
             .single()
 
@@ -124,7 +124,7 @@ const PaymentSuccess = () => {
         // 업데이트된 주문 정보 다시 조회
         const { data: updatedOrder, error: refetchError } = await supabase
           .from('orders')
-          .select('*, products(name, price), employees(employee_code)')
+          .select('*, products(name, price, slug), employees(referral_code)')
           .eq('id', orderIdNumber)
           .single()
 
@@ -294,16 +294,16 @@ const PaymentSuccess = () => {
           </button>
           <button
             onClick={() => {
-              // 상품 페이지 URL 생성
-              const productId = orderInfo?.product_id
-              const employeeCode = orderInfo?.employees?.employee_code
+              // 상품 페이지 URL 생성 (slug와 referral_code 사용)
+              const productSlug = orderInfo?.products?.slug
+              const referralCode = orderInfo?.employees?.referral_code
 
-              if (productId && employeeCode) {
+              if (productSlug && referralCode) {
                 // 주문했던 상품 페이지로 돌아가기
-                window.location.href = `/product/${productId}?ref=${employeeCode}`
-              } else if (productId) {
+                window.location.href = `/product/${productSlug}?ref=${referralCode}`
+              } else if (productSlug) {
                 // employee 정보가 없으면 ref 없이
-                window.location.href = `/product/${productId}`
+                window.location.href = `/product/${productSlug}`
               } else {
                 // 상품 정보가 없으면 홈으로
                 window.location.href = '/'

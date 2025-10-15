@@ -31,7 +31,7 @@ const AppRoutes = () => {
   return (
     <Routes>
       {/* Public routes - no auth required, no layout - MUST be defined first */}
-      <Route path="/product/:id" element={<ProductCatalog />} />
+      <Route path="/product/:slug" element={<ProductCatalog />} />
       <Route path="/order-success/:id" element={<OrderSuccess />} />
       <Route path="/payment" element={<PaymentPage />} />
       <Route path="/payment/success" element={<PaymentSuccess />} />

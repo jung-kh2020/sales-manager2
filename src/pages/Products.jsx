@@ -258,8 +258,10 @@ const Products = () => {
     product.description?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const generateProductUrl = (productId) => {
-    return `${window.location.origin}/product/${productId}`
+  const generateProductUrl = (product) => {
+    // slug 사용 (보안 강화)
+    const slug = typeof product === 'object' ? product.slug : product
+    return `${window.location.origin}/product/${slug}`
   }
 
   const copyToClipboard = (url) => {
@@ -360,7 +362,7 @@ const Products = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-500">상품 URL</span>
                     <button
-                      onClick={() => copyToClipboard(generateProductUrl(product.id))}
+                      onClick={() => copyToClipboard(generateProductUrl(product))}
                       className="text-blue-600 hover:text-blue-800 text-xs"
                     >
                       복사
@@ -369,12 +371,12 @@ const Products = () => {
                   <div className="flex items-center gap-2 mt-1">
                     <input
                       type="text"
-                      value={generateProductUrl(product.id)}
+                      value={generateProductUrl(product)}
                       readOnly
                       className="text-xs text-gray-600 bg-transparent border-none flex-1"
                     />
                     <a
-                      href={generateProductUrl(product.id)}
+                      href={generateProductUrl(product)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:text-blue-800"
@@ -576,13 +578,13 @@ const Products = () => {
                     <div className="mt-1 flex gap-2">
                       <input
                         type="text"
-                        value={generateProductUrl(editingProduct.id)}
+                        value={generateProductUrl(editingProduct)}
                         readOnly
                         className="block w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600"
                       />
                       <button
                         type="button"
-                        onClick={() => copyToClipboard(generateProductUrl(editingProduct.id))}
+                        onClick={() => copyToClipboard(generateProductUrl(editingProduct))}
                         className="px-3 py-2 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 whitespace-nowrap text-sm"
                       >
                         복사

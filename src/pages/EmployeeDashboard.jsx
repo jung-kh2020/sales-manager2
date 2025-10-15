@@ -181,8 +181,9 @@ const EmployeeDashboard = () => {
     }
   }
 
-  const generateProductUrl = (productId) => {
-    return `${window.location.origin}/product/${productId}?ref=${user.employee.employee_code}`
+  const generateProductUrl = (product) => {
+    // slug와 referral_code 사용 (보안 강화)
+    return `${window.location.origin}/product/${product.slug}?ref=${user.employee.referral_code}`
   }
 
   const copyToClipboard = (url) => {
@@ -327,14 +328,14 @@ const EmployeeDashboard = () => {
                     </p>
                     <div className="mt-3 flex gap-2">
                       <button
-                        onClick={() => copyToClipboard(generateProductUrl(product.id))}
+                        onClick={() => copyToClipboard(generateProductUrl(product))}
                         className="flex-1 px-3 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center"
                       >
                         <Copy className="h-4 w-4 mr-1" />
                         복사
                       </button>
                       <a
-                        href={generateProductUrl(product.id)}
+                        href={generateProductUrl(product)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex-1 px-3 py-2 text-sm bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors flex items-center justify-center"

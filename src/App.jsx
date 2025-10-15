@@ -30,7 +30,7 @@ const AppRoutes = () => {
   // Single Routes block - fixes "No routes matched" error
   return (
     <Routes>
-      {/* Public routes - no auth required, no layout */}
+      {/* Public routes - no auth required, no layout - MUST be defined first */}
       <Route path="/product/:id" element={<ProductCatalog />} />
       <Route path="/order-success/:id" element={<OrderSuccess />} />
       <Route path="/payment" element={<PaymentPage />} />
@@ -38,9 +38,7 @@ const AppRoutes = () => {
       <Route path="/payment/fail" element={<PaymentFail />} />
 
       {/* Protected routes - auth required, with layout */}
-      {!user ? (
-        <Route path="*" element={<Login />} />
-      ) : (
+      {user ? (
         <>
           <Route path="/" element={
             <Layout>
@@ -58,6 +56,8 @@ const AppRoutes = () => {
             </>
           )}
         </>
+      ) : (
+        <Route path="*" element={<Login />} />
       )}
     </Routes>
   )
